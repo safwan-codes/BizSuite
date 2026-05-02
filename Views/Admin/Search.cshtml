@@ -1,0 +1,166 @@
+@model List<BizSuite.Controllers.SearchResultViewModel>
+@{
+    Layout = "_AppLayout";
+    ViewData["Title"] = "Search Results";
+    var query = ViewBag.SearchQuery as string;
+}
+
+<div class="page-header">
+    <div class="breadcrumb-biz"><i class="fa-solid fa-house"></i><span class="sep">/</span><span>Search</span></div>
+    <h1>Search <span>Results</span></h1>
+    <p>Showing results for: <strong>"@query"</strong></p>
+</div>
+
+<div class="search-results-container">
+    @if (!Model.Any())
+    {
+        <div class="no-results">
+            <i class="fa-solid fa-magnifying-glass"></i>
+            <h3>No results found</h3>
+            <p>We couldn't find anything matching "@query". Try checking your spelling or using different keywords.</p>
+            <a href="/Admin/Dashboard" class="btn-biz-primary">Return to Dashboard</a>
+        </div>
+    }
+    else
+    {
+        var groups = Model.GroupBy(x => x.Source);
+        foreach (var group in groups)
+        {
+            <div class="search-group">
+                <div class="search-group-header">
+                    <i class="@(group.Key == "Product" ? "fa-solid fa-box-open" : group.Key == "Customer" ? "fa-solid fa-user-tie" : "fa-solid fa-file-invoice-dollar")"></i>
+                    @group.Key
+                </div>
+                <div class="search-list">
+                    @foreach (var item in group)
+                    {
+                        var link = group.Key == "Product" ? "/Admin/Products" : group.Key == "Customer" ? "/Admin/Customers" : "/Admin/SalesOrders";
+                        <a href="@link" class="search-item">
+                            <div class="search-item-info">
+                                <div class="search-item-title">@item.Title</div>
+                                <div class="search-item-subtitle">@item.Subtitle</div>
+                            </div>
+                            <div class="search-item-details">
+                                @if(group.Key == "Product") {
+                                    <span class="badge-biz lime">₹@item.Details</span>
+                                } else {
+                                    @item.Details
+                                }
+                                <i class="fa-solid fa-chevron-right"></i>
+                            </div>
+                        </a>
+                    }
+                </div>
+            </div>
+        }
+    }
+</div>
+
+<style>
+    .search-results-container {
+        display: flex;
+        flex-direction: column;
+        gap: 32px;
+        max-width: 900px;
+    }
+
+    .no-results {
+        text-align: center;
+        padding: 80px 20px;
+        background: rgba(255, 255, 255, 0.03);
+        border-radius: 16px;
+        border: 1px dashed rgba(255, 255, 255, 0.1);
+    }
+
+    .no-results i {
+        font-size: 48px;
+        color: var(--text-muted);
+        margin-bottom: 20px;
+    }
+
+    .no-results h3 {
+        font-size: 20px;
+        color: var(--text-primary);
+        margin-bottom: 8px;
+    }
+
+    .no-results p {
+        color: var(--text-secondary);
+        margin-bottom: 24px;
+    }
+
+    .search-group {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+    }
+
+    .search-group-header {
+        font-size: 14px;
+        font-weight: 700;
+        color: var(--accent-mint);
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding-left: 4px;
+    }
+
+    .search-list {
+        background: var(--panel-bg);
+        border-radius: 12px;
+        border: 1px solid var(--panel-border);
+        overflow: hidden;
+    }
+
+    .search-item {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 16px 20px;
+        text-decoration: none;
+        transition: all 0.2s ease;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    }
+
+    .search-item:last-child {
+        border-bottom: none;
+    }
+
+    .search-item:hover {
+        background: rgba(126, 227, 196, 0.05);
+    }
+
+    .search-item-title {
+        font-size: 15px;
+        font-weight: 600;
+        color: var(--text-primary);
+        margin-bottom: 2px;
+    }
+
+    .search-item-subtitle {
+        font-size: 13px;
+        color: var(--text-secondary);
+    }
+
+    .search-item-details {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        font-size: 13px;
+        font-weight: 600;
+        color: var(--text-muted);
+    }
+
+    .search-item-details i {
+        color: var(--text-muted);
+        font-size: 12px;
+        transition: transform 0.2s ease;
+    }
+
+    .search-item:hover .search-item-details i {
+        transform: translateX(4px);
+        color: var(--accent-lime);
+    }
+</style>

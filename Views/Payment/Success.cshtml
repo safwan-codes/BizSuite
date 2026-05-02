@@ -1,0 +1,37 @@
+@{
+    Layout = "_AppLayout";
+    ViewData["Title"] = "Payment Successful";
+}
+
+<div style="max-width: 600px; margin: 80px auto; text-align: center;">
+    <div style="width: 80px; height: 80px; background: rgba(201, 247, 111, 0.15); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 30px; font-size: 40px; color: var(--accent-lime);">
+        <i class="fa-solid fa-circle-check"></i>
+    </div>
+    
+    <h1 style="font-size: 32px; font-weight: 800; margin-bottom: 12px; color: var(--text-primary);">Payment Successful!</h1>
+    <p style="font-size: 16px; color: var(--text-muted); margin-bottom: 40px;">Your transaction has been processed securely. A digital receipt has been sent to the customer.</p>
+
+    <div class="panel" style="padding: 30px; border-radius: 20px; background: rgba(20, 61, 52, 0.3); backdrop-filter: blur(10px); border: 1px solid rgba(255, 255, 255, 0.05); text-align: left;">
+        <div style="display: flex; justify-content: space-between; margin-bottom: 16px;">
+            <span style="color: var(--text-muted); font-size: 14px;">Transaction ID</span>
+            <span style="font-family: monospace; font-weight: 700; color: var(--accent-lime);">@ViewBag.TxnId</span>
+        </div>
+        <div style="display: flex; justify-content: space-between; margin-bottom: 16px;">
+            <span style="color: var(--text-muted); font-size: 14px;">Status</span>
+            <span style="color: #4CAF50; font-weight: 600;"><i class="fa-solid fa-shield-check"></i> Verified</span>
+        </div>
+        <div style="display: flex; justify-content: space-between;">
+            <span style="color: var(--text-muted); font-size: 14px;">Completion Date</span>
+            <span style="color: var(--text-secondary);">@DateTime.Now.ToString("dd MMM yyyy, HH:mm")</span>
+        </div>
+    </div>
+
+    <div style="margin-top: 40px; display: flex; gap: 16px; justify-content: center;">
+        <a href="/Admin/Invoices" class="btn-biz primary">
+            <i class="fa-solid fa-list-check" style="margin-right:8px;"></i> View Invoices
+        </a>
+        <a href="/Admin/Dashboard" class="btn-biz secondary">
+            <i class="fa-solid fa-house" style="margin-right:8px;"></i> Go to Dashboard
+        </a>
+    </div>
+</div>

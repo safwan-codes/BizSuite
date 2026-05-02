@@ -1,0 +1,57 @@
+## BizSuite .gitignore
+
+# ── Build output ─────────────────────────────────────────────────
+[Bb]in/
+[Oo]bj/
+*.user
+*.suo
+.vs/
+.vscode/
+
+# ── Runtime secrets — NEVER commit ───────────────────────────────
+# Commit appsettings.json (with empty placeholders only)
+# but NEVER commit the production overrides
+appsettings.Production.json
+appsettings.*.local.json
+secrets.json
+
+# ── Scratch & debug artefacts ────────────────────────────────────
+# Log files generated during development
+*.log
+build*.log
+build*.txt
+e.log
+e_utf8.log
+err.txt
+error.txt
+
+# CSV / schema exploration files
+*.csv
+sp_*.txt
+db_stats_test.txt
+invoices_schema.txt
+procedures.csv
+
+# ── SQL scratch files (keep /Database but not root-level) ────────
+db_Fulfillment.sql
+fix_dashboard_manual.sql
+fix_sp_imageurl.sql
+migrate_attendance.sql
+update_fulfillment.sql
+update_fulfillment2.sql
+update_images.sql
+update_robust.sql
+update_sps.sql
+
+# ── Developer assets not for source control ───────────────────────
+bizsuite diagram.jpg
+screenshots/
+
+# ── NuGet ────────────────────────────────────────────────────────
+*.nupkg
+*.snupkg
+.nuget/
+packages/
+
+# ── Publish output ────────────────────────────────────────────────
+publish/

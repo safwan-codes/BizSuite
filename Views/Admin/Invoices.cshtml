@@ -1,0 +1,286 @@
+@{
+    Layout = "_AppLayout";
+    ViewData["Title"] = "Invoices";
+    var invoices = Model as IEnumerable<dynamic>;
+}
+
+<div id="addInvoiceModal" class="modal-overlay" style="display:none;">
+    <div class="modal-box">
+        <div class="modal-header">
+            <div class="modal-title"><i class="fa-solid fa-file-circle-plus"></i> Create Invoice</div>
+            <button class="modal-close" id="closeAddInvoiceModal"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+        <form id="addInvoiceForm">
+            @Html.AntiForgeryToken()
+            <div id="addInvoiceError" class="alert-biz danger mb-16" style="display:none;"></div>
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px;">
+                <div style="grid-column:1/-1;">
+                    <label class="form-label-biz">Customer Name *</label>
+                    <input type="text" id="ai_customer" class="form-input-biz" placeholder="e.g. Acme Corp" required />
+                </div>
+                <div>
+                    <label class="form-label-biz">Amount (₹) *</label>
+                    <input type="number" id="ai_amount" class="form-input-biz" placeholder="0.00" min="1" step="0.01" required />
+                </div>
+                <div>
+                    <label class="form-label-biz">Status</label>
+                    <select id="ai_status" class="form-input-biz">
+                        <option value="Pending">Pending</option>
+                        <option value="Paid">Paid</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="form-label-biz">Payment Method</label>
+                    <select id="ai_method" class="form-input-biz">
+                        <option>None</option>
+                        <option>UPI</option>
+                        <option>Card</option>
+                        <option>Bank Transfer</option>
+                        <option>Cash</option>
+                    </select>
+                </div>
+            </div>
+            <div class="d-flex gap-12" style="margin-top:20px;">
+                <button type="submit" class="quick-action-btn" id="saveInvoiceBtn">
+                    <i class="fa-solid fa-file-invoice"></i> Create Document
+                </button>
+                <button type="button" class="btn-biz-outline" id="cancelAddInvoiceModal" style="padding:10px 18px;">Cancel</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="page-header">
+    <div class="breadcrumb-biz"><i class="fa-solid fa-house"></i><span class="sep">/</span><span>Invoices</span></div>
+    <div class="d-flex align-center justify-between">
+        <div>
+            <h1><span>Invoice</span> Management</h1>
+            <p>Track billing and payment status across all customers</p>
+        </div>
+        <a href="/Staff/OrderEntry" class="quick-action-btn" style="text-decoration:none;">
+            <i class="fa-solid fa-file-circle-plus"></i> Create Invoice
+        </a>
+    </div>
+</div>
+
+<div class="filter-bar mb-24">
+    <div class="filter-search">
+        <i class="fa-solid fa-magnifying-glass filter-search-icon"></i>
+        <input type="text" class="table-search-input" data-target=".table-biz" placeholder="Search invoices..." />
+    </div>
+    <select class="filter-select" data-col="5" data-target=".table-biz">
+        <option value="">All Status</option>
+        <option>Paid</option>
+        <option>Pending</option>
+    </select>
+</div>
+
+<div style="display:grid; grid-template-columns:repeat(4,1fr); gap:16px; margin-bottom:24px;">
+    <div class="stat-mini">
+        <div class="stat-mini-value text-lime">@invoices.Count()</div>
+        <div class="stat-mini-label">Total Invoices</div>
+    </div>
+    <div class="stat-mini">
+        <div class="stat-mini-value" style="color:var(--success);">@invoices.Count(i=>i.Status=="Paid")</div>
+        <div class="stat-mini-label">Paid</div>
+    </div>
+    <div class="stat-mini">
+        <div class="stat-mini-value" style="color:var(--warning);">@invoices.Count(i=>i.Status=="Pending")</div>
+        <div class="stat-mini-label">Pending</div>
+    </div>
+    <div class="stat-mini">
+        <div class="stat-mini-value">₹@(invoices.Sum(i=>(decimal)i.Amount).ToString("N0"))</div>
+        <div class="stat-mini-label">Total Billed</div>
+    </div>
+</div>
+
+<div class="panel">
+    <div class="panel-header">
+        <div class="panel-title"><i class="fa-solid fa-file-invoice-dollar panel-icon"></i> All Invoices</div>
+        <a href="/Admin/ExportInvoices" class="btn-biz-outline" style="text-decoration:none;">
+            <i class="fa-solid fa-arrow-down-to-bracket"></i> Export
+        </a>
+    </div>
+    <div style="overflow-x:auto;">
+        <table class="table-biz">
+            <thead>
+                <tr>
+                    <th>Invoice #</th>
+                    <th>Customer</th>
+                    <th>Date</th>
+                    <th>Amount</th>
+                    <th>Status</th>
+                    <th>Payment Method</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var inv in invoices)
+                {
+                    bool paid = (string)inv.Status == "Paid";
+                    var methodIcon = ((string)inv.Method) switch {
+                        "UPI"           => "fa-mobile-screen-button",
+                        "Card"          => "fa-credit-card",
+                        "Cash"          => "fa-money-bill-wave",
+                        "Bank Transfer" => "fa-building-columns",
+                        _               => "fa-clock"
+                    };
+                    <tr>
+                        <td><span style="font-family:monospace; font-weight:700; color:var(--accent-lime);">INV-@inv.InvoiceId</span></td>
+                        <td>
+                            <div class="d-flex align-center gap-10">
+                                <div style="width:30px; height:30px; border-radius:50%; background:linear-gradient(135deg,var(--accent-lime),var(--accent-mint)); display:flex; align-items:center; justify-content:center; font-size:11px; font-weight:700; color:var(--text-dark); flex-shrink:0;">@inv.Customer.ToString()[0]</div>
+                                @inv.Customer
+                            </div>
+                        </td>
+                        <td>@inv.InvoiceDate</td>
+                        <td><strong style="color:var(--text-primary);">₹@(((decimal)inv.Amount).ToString("N0"))</strong></td>
+                        <td>
+                            @if (paid)
+                            {
+                                <span class="badge-biz success"><span class="badge-dot"></span>Paid</span>
+                            }
+                            else
+                            {
+                                <span class="badge-biz warning"><span class="badge-dot"></span>Pending</span>
+                            }
+                        </td>
+                        <td>
+                            @if (paid)
+                            {
+                                <span class="d-flex align-center gap-6" style="font-size:13px; color:var(--text-secondary);">
+                                    <i class="fa-solid @methodIcon" style="color:var(--accent-mint);"></i> @inv.Method
+                                </span>
+                            }
+                            else
+                            {
+                                <span style="color:var(--text-muted); font-size:13px;">Awaiting</span>
+                            }
+                        </td>
+                        <td>
+                            <div class="d-flex gap-8">
+                                <a href="/Admin/PrintInvoice/@inv.InvoiceId" target="_blank" class="btn-biz-outline" style="font-size:12px; padding:7px 12px; text-decoration:none;" title="Download Invoice">
+                                    <i class="fa-solid fa-file-pdf" style="color:#ef4444;"></i>
+                                </a>
+                                @if (!paid)
+                                {
+                                    <a href="/Payment/Checkout/@inv.InvoiceId" class="btn-biz-outline" style="font-size:12px; padding:7px 12px; color:var(--success); border-color:rgba(74,222,128,0.3); text-decoration:none;">
+                                        <i class="fa-solid fa-circle-check"></i> Pay
+                                    </a>
+                                }
+                            </div>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
+
+@section Scripts {
+<script>
+    
+    $('.panel-header .btn-biz-outline').on('click', function() {
+        showToast('Exporting Invoices to CSV...', 'success');
+    });
+
+    $('.table-biz .btn-action').on('click', function() {
+        showToast('Opening Invoice Details...', 'info');
+    });
+
+    $(document).on('click', '.table-biz .btn-biz-outline:contains("Pay")', function(e) {
+        
+    });
+
+    const token = $('input[name="__RequestVerificationToken"]').val();
+
+    $('#openAddInvoiceModal').on('click', () => { $('#addInvoiceModal').fadeIn(200); });
+    $('#closeAddInvoiceModal, #cancelAddInvoiceModal').on('click', () => { $('#addInvoiceModal').fadeOut(200); resetInvoiceForm(); });
+    $('#addInvoiceModal').on('click', function(e) { if ($(e.target).is('#addInvoiceModal')) { $(this).fadeOut(200); resetInvoiceForm(); } });
+
+    function resetInvoiceForm() {
+        $('#addInvoiceForm')[0].reset();
+        $('#addInvoiceError').hide();
+        $('#saveInvoiceBtn').html('<i class="fa-solid fa-file-invoice"></i> Create Document');
+    }
+
+    $('#addInvoiceForm').on('submit', function(e) {
+        e.preventDefault();
+        const customer = $('#ai_customer').val().trim();
+        const amount   = parseFloat($('#ai_amount').val()) || 0;
+        const status   = $('#ai_status').val();
+        const method   = $('#ai_method').val();
+
+        $('#saveInvoiceBtn').html('<i class="fa-solid fa-spinner fa-spin"></i> Creating...');
+
+        $.ajax({
+            url: '/Admin/AddInvoiceAjax',
+            method: 'POST',
+            headers: { 'RequestVerificationToken': token },
+            data: { customer, amount, status, method },
+            success: function(res) {
+                if (res.success) {
+                    $('#addInvoiceModal').fadeOut(200);
+                    resetInvoiceForm();
+                    showToast(res.message, 'success');
+
+                    const isPaid = status === 'Paid';
+                    let methodIcon = 'fa-clock';
+                    if(method === 'UPI') methodIcon = 'fa-mobile-screen-button';
+                    if(method === 'Card') methodIcon = 'fa-credit-card';
+                    if(method === 'Cash') methodIcon = 'fa-money-bill-wave';
+                    if(method === 'Bank Transfer') methodIcon = 'fa-building-columns';
+                    
+                    const badge = isPaid 
+                        ? `<span class="badge-biz success"><span class="badge-dot"></span>Paid</span>` 
+                        : `<span class="badge-biz warning"><span class="badge-dot"></span>Pending</span>`;
+                        
+                    const methodHtml = isPaid
+                        ? `<span class="d-flex align-center gap-6" style="font-size:13px; color:var(--text-secondary);"><i class="fa-solid ${methodIcon}" style="color:var(--accent-mint);"></i> ${method}</span>`
+                        : `<span style="color:var(--text-muted); font-size:13px;">Awaiting</span>`;
+                    
+                    const payBtn = !isPaid 
+                        ? `<button class="btn-biz-outline" style="font-size:12px; padding:7px 12px; color:var(--success); border-color:rgba(74,222,128,0.3);"><i class="fa-solid fa-circle-check"></i> Pay</button>` 
+                        : '';
+
+                    const rowHtml = `<tr>
+                        <td><span style="font-family:monospace; font-weight:700; color:var(--accent-lime);">INV-${res.invoiceId}</span></td>
+                        <td>
+                            <div class="d-flex align-center gap-10">
+                                <div style="width:30px; height:30px; border-radius:50%; background:linear-gradient(135deg,var(--accent-lime),var(--accent-mint)); display:flex; align-items:center; justify-content:center; font-size:11px; font-weight:700; color:var(--text-dark); flex-shrink:0;">${customer[0].toUpperCase()}</div>
+                                ${customer}
+                            </div>
+                        </td>
+                        <td>${new Date().toLocaleDateString('en-GB', { day:'2-digit', month:'short', year:'numeric'})}</td>
+                        <td><strong style="color:var(--text-primary);">₹${amount.toLocaleString('en-IN')}</strong></td>
+                        <td>${badge}</td>
+                        <td>${methodHtml}</td>
+                        <td>
+                            <div class="d-flex gap-8">
+                                <a href="/Admin/PrintInvoice/${res.invoiceId}" target="_blank" class="btn-biz-outline" style="font-size:12px; padding:7px 12px; text-decoration:none;" title="Download Invoice">
+                                    <i class="fa-solid fa-file-pdf" style="color:#ef4444;"></i>
+                                </a>
+                                ${payBtn}
+                            </div>
+                        </td>
+                    </tr>`;
+                    $('.table-biz tbody').prepend(rowHtml);
+                } else {
+                    $('#addInvoiceError').text(res.message).show();
+                    $('#saveInvoiceBtn').html('<i class="fa-solid fa-file-invoice"></i> Create Document');
+                }
+            },
+            error: function() {
+                $('#addInvoiceError').text('Server error adding invoice.').show();
+                $('#saveInvoiceBtn').html('<i class="fa-solid fa-file-invoice"></i> Create Document');
+            }
+        });
+    });
+
+    function showToast(msg, type) {
+        const t = $(`<div class="toast-biz ${type}">${msg}</div>`);
+        $('#toast-container').append(t);
+        setTimeout(() => t.fadeOut(400, () => t.remove()), 3500);
+    }
+</script>
+}

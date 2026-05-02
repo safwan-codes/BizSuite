@@ -1,0 +1,139 @@
+@{
+    Layout = "_AppLayout";
+    ViewData["Title"] = "User Profile";
+    var fullName = Context.Session.GetString("FullName");
+    var email = Context.Session.GetString("Email");
+    var role = Context.Session.GetString("RoleName");
+    var phone = Context.Session.GetString("Phone");
+    var dept = Context.Session.GetString("Department");
+    var profileImage = Context.Session.GetString("ProfileImage");
+}
+
+<div class="page-header">
+    <div class="breadcrumb-biz"><i class="fa-solid fa-house"></i><span class="sep">/</span><span>Account Settings</span></div>
+    <h1><span>My</span> Profile</h1>
+    <p>Manage your personal information and security settings</p>
+</div>
+
+<div style="display:grid; grid-template-columns:300px 1fr; gap:24px;">
+    
+    <div class="panel" style="height:fit-content;">
+        <div class="panel-body" style="text-align:center; padding:32px 24px;">
+            @if (!string.IsNullOrEmpty(profileImage))
+            {
+                <img src="@profileImage" alt="Avatar" style="width:100px; height:100px; border-radius:50%; object-fit: cover; margin:0 auto 16px; display:block; border: 3px solid var(--accent-lime);" />
+            }
+            else
+            {
+                <div style="width:100px; height:100px; border-radius:50%; background:linear-gradient(135deg, var(--accent-lime), var(--accent-mint)); margin:0 auto 16px; display:flex; align-items:center; justify-content:center; font-size:32px; font-weight:800; color:var(--text-dark);">
+                    @(fullName?.Length > 0 ? fullName.Substring(0,1) : "U")
+                </div>
+            }
+            <h2 style="font-size:20px; font-weight:700; color:var(--text-primary); margin-bottom:4px;">@fullName</h2>
+            <div class="badge-biz mint" style="display:inline-block;">@role @(!string.IsNullOrEmpty(dept) ? $"({dept})" : "")</div>
+            
+            <div style="margin-top:24px; text-align:left; font-size:13px;">
+                <div style="margin-bottom:12px;">
+                    <div style="color:var(--text-muted); margin-bottom:2px;">Email Address</div>
+                    <div style="color:var(--text-primary); font-weight:600;">@email</div>
+                </div>
+                <div style="margin-bottom:12px;">
+                    <div style="color:var(--text-muted); margin-bottom:2px;">Phone Number</div>
+                    <div style="color:var(--text-primary); font-weight:600;">@(string.IsNullOrEmpty(phone) ? "Not provided" : phone)</div>
+                </div>
+                <div>
+                    <div style="color:var(--text-muted); margin-bottom:2px;">Account Status</div>
+                    <div style="color:var(--success); font-weight:600;"><i class="fa-solid fa-circle-check"></i> Active</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="panel">
+        <div class="panel-header">
+            <div class="panel-title"><i class="fa-solid fa-user-gear panel-icon"></i> Profile Settings</div>
+        </div>
+        <div class="panel-body" style="padding:24px;">
+            @if (TempData["Success"] != null)
+            {
+                <div class="alert-biz success mb-24">
+                    <i class="fa-solid fa-circle-check"></i> @TempData["Success"]
+                </div>
+            }
+            @if (TempData["Error"] != null)
+            {
+                <div class="alert-biz danger mb-24">
+                    <i class="fa-solid fa-circle-exclamation"></i> @TempData["Error"]
+                </div>
+            }
+
+            <div style="display:grid; grid-template-columns: 1fr 1fr; gap: 40px;">
+                
+                <div>
+                    <h3 style="font-size:16px; margin-bottom:20px; color:var(--accent-mint);"><i class="fa-solid fa-id-card"></i> Personal Details</h3>
+                    <form asp-action="UpdateProfile" asp-controller="Auth" method="post" enctype="multipart/form-data">
+                        @Html.AntiForgeryToken()
+                        
+                        <div class="mb-16">
+                            <label class="form-label-biz">Full Name</label>
+                            <input type="text" name="fullName" class="form-input-biz" value="@fullName" required />
+                        </div>
+
+                        <div class="mb-16">
+                            <label class="form-label-biz">Email Address</label>
+                            <input type="email" name="email" class="form-input-biz" value="@email" required />
+                        </div>
+
+                        <div class="mb-16">
+                            <label class="form-label-biz">Phone Number</label>
+                            <input type="text" name="phone" class="form-input-biz" value="@phone" placeholder="e.g. +91 98765 43210" />
+                        </div>
+
+                        <div class="mb-16">
+                            <label class="form-label-biz">Department</label>
+                            <input type="text" name="department" class="form-input-biz" value="@dept" placeholder="e.g. Sales, Management" />
+                        </div>
+
+                        <div class="mb-24">
+                            <label class="form-label-biz">Profile Picture</label>
+                            <input type="file" name="profileImage" class="form-input-biz" accept="image/*" style="padding: 8px;" />
+                            <small style="color:var(--text-muted); font-size:11px; display:block; margin-top:4px;">Square ratio recommended. JPG, PNG supported.</small>
+                        </div>
+
+                        <button type="submit" class="quick-action-btn">
+                            <i class="fa-solid fa-floppy-disk"></i> Save Personal Details
+                        </button>
+                    </form>
+                </div>
+
+                <div>
+                    <h3 style="font-size:16px; margin-bottom:20px; color:var(--accent-lime);"><i class="fa-solid fa-key"></i> Security Settings</h3>
+                    <form asp-action="ChangePassword" asp-controller="Auth" method="post">
+                        @Html.AntiForgeryToken()
+                        
+                        <div class="mb-16">
+                            <label class="form-label-biz">Current Password</label>
+                            <input type="password" name="oldPassword" class="form-input-biz" required placeholder="••••••••" />
+                        </div>
+
+                        <div class="sidebar-divider" style="margin:20px 0;"></div>
+
+                        <div class="mb-16">
+                            <label class="form-label-biz">New Password</label>
+                            <input type="password" name="newPassword" class="form-input-biz" required placeholder="Min. 8 characters" minlength="8" />
+                        </div>
+
+                        <div class="mb-24">
+                            <label class="form-label-biz">Confirm New Password</label>
+                            <input type="password" name="confirmPassword" class="form-input-biz" required placeholder="Repeat new password" minlength="8" />
+                        </div>
+
+                        <button type="submit" class="quick-action-btn" style="background:rgba(126,227,196,0.1); color:var(--accent-mint); border:1px solid rgba(126,227,196,0.2);">
+                            <i class="fa-solid fa-shield-halved"></i> Update Password
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

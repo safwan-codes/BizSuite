@@ -1,0 +1,202 @@
+@model BizSuite.Models.PagedResult<BizSuite.Models.SalesOrderRow>
+@{
+    Layout = "_AppLayout";
+    ViewData["Title"] = "Sales Orders";
+    var q = ViewBag.QueryParams as BizSuite.Models.SalesOrderQueryParameters;
+}
+
+<div class="page-header">
+    <div class="breadcrumb-biz"><i class="fa-solid fa-house"></i><span class="sep">/</span><span>Sales & Orders</span></div>
+    <div class="d-flex align-center justify-between">
+        <div>
+            <h1><span>Sales</span> Orders</h1>
+            <p>Track and manage all customer orders</p>
+        </div>
+        <a href="/Staff/OrderEntry" class="quick-action-btn">
+            <i class="fa-solid fa-circle-plus"></i> New Order
+        </a>
+    </div>
+</div>
+
+<div class="filter-bar mb-24">
+    <form method="get" action="/Admin/SalesOrders" class="d-flex w-100 align-center gap-16" style="flex:1;">
+        <div class="filter-search" style="flex:1;">
+            <i class="fa-solid fa-magnifying-glass filter-search-icon"></i>
+            <input type="text" name="SearchTerm" class="table-search-input" value="@q?.SearchTerm" placeholder="Search by customer or order ID (Press Enter to search)..." />
+        </div>
+        <select name="FulfillmentStatus" class="filter-select" onchange="this.form.submit()">
+            <option value="" selected="@(string.IsNullOrEmpty(q?.FulfillmentStatus))">All Status</option>
+            <option value="Pending" selected="@(q?.FulfillmentStatus == "Pending")">Pending</option>
+            <option value="In_Transit" selected="@(q?.FulfillmentStatus == "In_Transit")">In Transit</option>
+            <option value="Delivered" selected="@(q?.FulfillmentStatus == "Delivered")">Delivered</option>
+        </select>
+    </form>
+</div>
+
+<div style="display:grid; grid-template-columns:repeat(3,1fr); gap:16px; margin-bottom:24px;">
+    <div class="stat-mini">
+        <div class="stat-mini-value text-lime">@Model.TotalCount</div>
+        <div class="stat-mini-label">Total Orders (Global)</div>
+    </div>
+    <div class="stat-mini">
+        <div class="stat-mini-value" style="color:var(--info);">@Model.PageNumber / @Math.Max(1, Model.TotalPages)</div>
+        <div class="stat-mini-label">Current Page</div>
+    </div>
+    <div class="stat-mini">
+        <div class="stat-mini-value" style="color:var(--text-primary);">@Model.Items.Count()</div>
+        <div class="stat-mini-label">Showing on this page</div>
+    </div>
+</div>
+
+<div id="bulk-action-bar" style="display:none; padding:12px 24px; background:var(--accent-lime); border-radius:8px; margin-bottom:24px; align-items:center; justify-content:space-between; box-shadow:0 10px 20px rgba(201, 247, 111, 0.15);">
+    <div style="color:var(--bg-dark); font-weight:700;"><span id="sel-count">0</span> Orders Selected</div>
+    <div class="d-flex gap-12">
+        <button id="btn-bulk-process" class="btn-biz-pay" style="padding:10px 20px; font-size:13px; background:var(--bg-dark); color:white;">Bulk Fulfill</button>
+    </div>
+</div>
+
+<div class="panel">
+    <div class="panel-header">
+        <div class="panel-title"><i class="fa-solid fa-cart-shopping panel-icon"></i> All Orders</div>
+        <a href="/Admin/ExportSalesOrders" class="btn-biz-outline" style="text-decoration:none;">
+            <i class="fa-solid fa-arrow-down-to-bracket"></i> Export
+        </a>
+    </div>
+    <div style="overflow-x:auto;">
+        <table class="table-biz">
+            <thead>
+                <tr>
+                    <th style="width:40px;"><input type="checkbox" id="chk-all" /></th>
+                    <th>Order ID</th>
+                    <th>Customer</th>
+                    <th>Date</th>
+                    <th>Items</th>
+                    <th>Total</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                @if(!Model.Items.Any())
+                {
+                    <tr>
+                        <td colspan="8" style="text-align:center; padding:40px 0;">
+                            <i class="fa-solid fa-box-open" style="font-size:32px; color:var(--border); margin-bottom:12px; display:block;"></i>
+                            <p style="color:var(--text-muted);">No orders found matching your criteria.</p>
+                        </td>
+                    </tr>
+                }
+                @foreach (var o in Model.Items)
+                {
+                    string status = o.FulfillmentStatus ?? "Pending";
+                    var (badgeCls, icon) = status switch
+                    {
+                        "Delivered" => ("success", "fa-circle-check"),
+                        "In_Transit" => ("lime", "fa-truck-fast"),
+                        "Shipped" => ("lime", "fa-plane-departure"),
+                        "Pending" => ("warning", "fa-clock"),
+                        _ => ("info", "fa-circle")
+                    };
+                    <tr>
+                        <td><input type="checkbox" class="chk-row" data-id="@o.OrderId" /></td>
+                        <td><span style="font-family:monospace; font-weight:700; color:var(--accent-lime);">#@o.OrderId</span></td>
+                        <td>
+                            <div class="d-flex align-center gap-10">
+                                <div style="width:30px; height:30px; border-radius:50%; background:linear-gradient(135deg,var(--accent-lime),var(--accent-mint)); display:flex; align-items:center; justify-content:center; font-size:11px; font-weight:700; color:var(--text-dark); flex-shrink:0;">
+                                    @(!string.IsNullOrEmpty(o.Customer) ? o.Customer[0].ToString() : "?")
+                                </div>
+                                @o.Customer
+                            </div>
+                        </td>
+                        <td>@o.OrderDate</td>
+                        <td><span class="badge-biz info">@o.Items item@(o.Items > 1 ? "s" : "")</span></td>
+                        <td><strong style="color:var(--accent-lime);">₹@o.Total.ToString("N0")</strong></td>
+                        <td>
+                            <span class="badge-biz @badgeCls">
+                                <i class="fa-solid @icon" style="font-size:9px;"></i> @o.FulfillmentStatus
+                            </span>
+                        </td>
+                        <td>
+                            <div class="d-flex gap-8">
+                                <a href="/Admin/ViewOrder/@o.OrderId" class="btn-action" style="text-decoration:none;">View</a>
+                                <a href="/Admin/Invoices" class="btn-biz-outline" style="font-size:12px; padding:7px 12px;">
+                                    <i class="fa-solid fa-file-invoice"></i>
+                                </a>
+                            </div>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+
+    @if (Model.TotalPages > 1)
+    {
+        <div style="padding:16px 24px; border-top:1px solid rgba(255,255,255,0.05); display:flex; justify-content:space-between; align-items:center;">
+            <div style="font-size:13px; color:var(--text-muted);">
+                Showing page @Model.PageNumber of @Model.TotalPages
+            </div>
+            <div class="d-flex gap-8">
+                @if(Model.PageNumber > 1) {
+                    <a href="?PageNumber=@(Model.PageNumber - 1)&SearchTerm=@(q?.SearchTerm)&FulfillmentStatus=@(q?.FulfillmentStatus)" class="btn-biz-outline" style="padding:6px 12px; text-decoration:none;"><i class="fa-solid fa-angle-left"></i> Prev</a>
+                }
+                @if(Model.PageNumber < Model.TotalPages) {
+                    <a href="?PageNumber=@(Model.PageNumber + 1)&SearchTerm=@(q?.SearchTerm)&FulfillmentStatus=@(q?.FulfillmentStatus)" class="btn-biz-outline" style="padding:6px 12px; text-decoration:none;">Next <i class="fa-solid fa-angle-right"></i></a>
+                }
+            </div>
+        </div>
+    }
+</div>
+
+@section Scripts {
+    <script>
+        $(function() {
+            // Bulk Selection Logic
+            $('#chk-all').on('change', function() {
+                $('.chk-row').prop('checked', this.checked);
+                toggleBulkBar();
+            });
+
+            $('.chk-row').on('change', function() {
+                if(!this.checked) $('#chk-all').prop('checked', false);
+                toggleBulkBar();
+            });
+
+            function toggleBulkBar() {
+                let count = $('.chk-row:checked').length;
+                if(count > 0) {
+                    $('#sel-count').text(count);
+                    $('#bulk-action-bar').slideDown(200);
+                } else {
+                    $('#bulk-action-bar').slideUp(200);
+                }
+            }
+
+            // Execute Bulk Process
+            $('#btn-bulk-process').on('click', function() {
+                let ids = [];
+                $('.chk-row:checked').each(function() {
+                    ids.push(parseInt($(this).data('id')));
+                });
+
+                if(ids.length === 0) return;
+                
+                $(this).prop('disabled', true).text('Processing...');
+
+                BizSuite.post('/Admin/BulkProcessOrders', ids, function(res) {
+                    if(res.success) {
+                        BizSuite.showToast(res.message, 'success');
+                        setTimeout(() => location.reload(), 1500);
+                    } else {
+                        BizSuite.showToast(res.message, 'error');
+                        $('#btn-bulk-process').prop('disabled', false).text('Bulk Fulfill');
+                    }
+                });
+            });
+
+            $('.panel-header .btn-biz-outline').on('click', function() {
+                BizSuite.showToast('Exporting Sales Orders to CSV...', 'success');
+            });
+        });
+    </script>
+}

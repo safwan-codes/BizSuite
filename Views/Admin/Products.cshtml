@@ -1,0 +1,332 @@
+@model IEnumerable<BizSuite.Models.Product>
+@{
+    Layout = "_AppLayout";
+    ViewData["Title"] = "Products";
+}
+
+<div id="addProductModal" class="modal-overlay" style="display:none;">
+    <div class="modal-box">
+        <div class="modal-header">
+            <div class="modal-title"><i class="fa-solid fa-circle-plus"></i> Add New Product</div>
+            <button class="modal-close" id="closeAddModal"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+        <form id="addProductForm" enctype="multipart/form-data">
+            @Html.AntiForgeryToken()
+            <input type="hidden" id="ap_product_id" value="0" />
+            <div id="addFormError" class="alert-biz danger mb-16" style="display:none;"></div>
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px;">
+                <div style="grid-column:1/-1;">
+                    <label class="form-label-biz">Product Name *</label>
+                    <input type="text" id="ap_name" name="ProductName" class="form-input-biz" placeholder="e.g. Samsung Galaxy M34" />
+                </div>
+                <div style="grid-column:1/-1;">
+                    <label class="form-label-biz">Product Image</label>
+                    <input type="file" id="ap_image" name="ImageFile" accept="image/*" class="form-input-biz" />
+                </div>
+                <div>
+                    <label class="form-label-biz">Category *</label>
+                    <select id="ap_category" class="form-input-biz">
+                        <option value="">-- Select --</option>
+                        <option>Electronics</option>
+                        <option>Accessories</option>
+                        <option>Furniture</option>
+                        <option>Networking</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="form-label-biz">Price (₹) *</label>
+                    <input type="number" id="ap_price" class="form-input-biz" placeholder="0.00" min="1" step="0.01" />
+                </div>
+                <div>
+                    <label class="form-label-biz">Stock Quantity</label>
+                    <input type="number" id="ap_stock" class="form-input-biz" placeholder="0" min="0" value="0" />
+                </div>
+                <div>
+                    <label class="form-label-biz">Low Stock Threshold</label>
+                    <input type="number" id="ap_threshold" class="form-input-biz" placeholder="10" min="1" value="10" />
+                </div>
+            </div>
+            <div class="d-flex gap-12" style="margin-top:20px;">
+                <button type="submit" class="quick-action-btn" id="saveProductBtn">
+                    <i class="fa-solid fa-floppy-disk"></i> Save Product
+                </button>
+                <button type="button" class="btn-biz-outline" id="cancelAddModal" style="padding:10px 18px;">Cancel</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="page-header">
+    <div class="breadcrumb-biz">
+        <i class="fa-solid fa-house"></i><span class="sep">/</span><span>Products</span>
+    </div>
+    <div class="d-flex align-center justify-between">
+        <div>
+            <h1><span>Product</span> Inventory</h1>
+            <p>Manage product catalog, pricing, and stock levels</p>
+        </div>
+        <button class="quick-action-btn" id="openAddModal">
+            <i class="fa-solid fa-circle-plus"></i> Add Product
+        </button>
+    </div>
+</div>
+
+<div class="filter-bar mb-24">
+    <div class="filter-search">
+        <i class="fa-solid fa-magnifying-glass filter-search-icon"></i>
+        <input type="text" class="table-search-input" data-target=".table-biz" placeholder="Search products..." />
+    </div>
+    <select class="filter-select" data-col="2" data-target=".table-biz">
+        <option value="">All Categories</option>
+        <option>Electronics</option>
+        <option>Accessories</option>
+        <option>Furniture</option>
+        <option>Networking</option>
+    </select>
+    <select class="filter-select" id="stockFilter">
+        <option value="">All Stock</option>
+        <option value="low">Low Stock</option>
+        <option value="good">In Stock</option>
+    </select>
+</div>
+
+<div style="display:grid; grid-template-columns:repeat(4,1fr); gap:16px; margin-bottom:24px;">
+    <div class="stat-mini">
+        <div class="stat-mini-value text-lime">@Model.Count()</div>
+        <div class="stat-mini-label">Total Products</div>
+    </div>
+    <div class="stat-mini">
+        <div class="stat-mini-value" style="color:var(--danger);">@Model.Count(p => p.StockQuantity <= p.LowStockThreshold)</div>
+        <div class="stat-mini-label">Low Stock</div>
+    </div>
+    <div class="stat-mini">
+        <div class="stat-mini-value" style="color:var(--warning);">@Model.Where(p => !string.IsNullOrEmpty(p.CategoryName)).Select(p => p.CategoryName).Distinct().Count()</div>
+        <div class="stat-mini-label">Categories</div>
+    </div>
+    <div class="stat-mini">
+        <div class="stat-mini-value">₹@Model.Sum(p => p.Price * p.StockQuantity).ToString("N0")</div>
+        <div class="stat-mini-label">Stock Value</div>
+    </div>
+</div>
+
+<div class="panel">
+    <div class="panel-header">
+        <div class="panel-title">
+            <i class="fa-solid fa-box panel-icon"></i> Product Catalog
+        </div>
+        <a href="/Admin/ExportProducts" class="btn-biz-outline" style="text-decoration:none;">
+            <i class="fa-solid fa-arrow-down-to-bracket"></i> Export
+        </a>
+    </div>
+    <div style="overflow-x:auto;">
+        <table class="table-biz" id="productTable">
+            <thead>
+                <tr>
+                    <th>Product</th>
+                    <th>Category</th>
+                    <th>Price</th>
+                    <th>Stock</th>
+                    <th>Stock Level</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody id="productTableBody">
+                @foreach (var p in Model)
+                {
+                    int stock = p.StockQuantity;
+                    int thresh = p.LowStockThreshold;
+                    bool low = stock <= thresh;
+                    bool crit = stock <= thresh / 2;
+                    int pct = Math.Min(100, (int)Math.Round((double)stock / Math.Max(thresh * 3, 1) * 100));
+                    
+                    string barClass = crit ? "critical" : low ? "low" : "good";
+                    string badgeCls = crit ? "danger" : low ? "warning" : "success";
+                    string badgeTxt = crit ? "Critical" : low ? "Low Stock" : "In Stock";
+
+                    <tr data-id="@p.ProductId">
+                        <td>
+                            <div class="d-flex align-center gap-12">
+                                @if (p.ImageData != null && p.ImageData.Length > 0)
+                                {
+                                    <div style="width:38px;height:38px;border-radius:10px;overflow:hidden;flex-shrink:0;">
+                                        <img src="/Admin/GetProductImage/@p.ProductId" alt="@p.ProductName" style="width:100%;height:100%;object-fit:cover;" />
+                                    </div>
+                                }
+                                else
+                                {
+                                    <div style="width:38px;height:38px;border-radius:10px;background:rgba(126,227,196,0.1);display:flex;align-items:center;justify-content:center;font-size:16px;color:var(--accent-mint);flex-shrink:0;">
+                                        <i class="fa-solid fa-box"></i>
+                                    </div>
+                                }
+                                <div>
+                                    <div style="font-weight:600;color:var(--text-primary);font-size:13px;">@p.ProductName</div>
+                                    <div style="font-size:11px;color:var(--text-muted);">ID #@p.ProductId</div>
+                                </div>
+                            </div>
+                        </td>
+                        <td><span class="badge-biz mint">@p.CategoryName</span></td>
+                        <td><strong style="color:var(--accent-lime);">₹@p.Price.ToString("N0")</strong></td>
+                        <td>
+                            <span style="font-weight:700;color:@(crit ? "var(--danger)" : low ? "var(--warning)" : "var(--text-primary)");">@stock</span>
+                            <span style="font-size:11px;color:var(--text-muted);"> / @thresh min</span>
+                        </td>
+                        <td>
+                            <div class="stock-bar">
+                                <div class="stock-bar-fill @barClass" style="width:@(pct)%"></div>
+                            </div>
+                        </td>
+                        <td><span class="badge-biz @badgeCls"><span class="badge-dot"></span>@badgeTxt</span></td>
+                        <td>
+                            <div class="d-flex gap-8">
+                                <button class="btn-action"><i class="fa-solid fa-pen"></i></button>
+                                <button class="btn-action btn-delete-product"
+                                        data-id="@p.ProductId"
+                                        data-name="@p.ProductName"
+                                        style="background:rgba(239,68,68,0.1);color:var(--danger);border-color:rgba(239,68,68,0.2);">
+                                    <i class="fa-solid fa-trash"></i>
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        const token = $('input[name="__RequestVerificationToken"]').val();
+
+        $('#openAddModal').on('click', () => { $('#addProductModal').fadeIn(200); });
+        $('#closeAddModal, #cancelAddModal').on('click', () => { $('#addProductModal').fadeOut(200); resetForm(); });
+        $('#addProductModal').on('click', function (e) {
+            if ($(e.target).is('#addProductModal')) { $(this).fadeOut(200); resetForm(); }
+        });
+
+        function resetForm() {
+            $('#addProductForm')[0].reset();
+            $('#ap_product_id').val('0');
+            $('#addFormError').hide();
+            $('.modal-title').html('<i class="fa-solid fa-circle-plus"></i> Add New Product');
+            $('#saveProductBtn').html('<i class="fa-solid fa-floppy-disk"></i> Save Product');
+        }
+
+        $(document).on('click', '.btn-action:has(.fa-pen)', function () {
+            const $row = $(this).closest('tr');
+            $('#ap_product_id').val($row.data('id'));
+            $('#ap_name').val($row.find('td:nth-child(1) .d-flex div:nth-child(2) div:first').text());
+            $('#ap_category').val($row.find('td:nth-child(2) span').text());
+
+            let priceText = $row.find('td:nth-child(3) strong').text().replace('₹', '').replace(/,/g, '');
+            $('#ap_price').val(priceText);
+    
+            $('#ap_stock').val(parseInt($row.find('td:nth-child(4) span:first').text()));
+    
+            $('.modal-title').html('<i class="fa-solid fa-pen"></i> Edit Product');
+            $('#saveProductBtn').html('<i class="fa-solid fa-floppy-disk"></i> Update Product');
+            $('#addProductModal').fadeIn(200);
+        });
+
+        $('.panel-header .btn-biz-outline').on('click', function() {
+            showToast('Exporting Products catalog...', 'success');
+        });
+
+        $('#addProductForm').on('submit', function (e) {
+            e.preventDefault();
+            const productId = parseInt($('#ap_product_id').val()) || 0;
+            const name      = $('#ap_name').val().trim();
+            const category  = $('#ap_category').val();
+            const price     = parseFloat($('#ap_price').val()) || 0;
+            const stock     = parseInt($('#ap_stock').val())   || 0;
+            const threshold = parseInt($('#ap_threshold').val()) || 10;
+            const fileInput = $('#ap_image')[0].files[0];
+
+            if (!name)     { showFormErr('Product name is required.'); return; }
+            if (!category) { showFormErr('Please select a category.'); return; }
+            if (price <= 0){ showFormErr('Price must be greater than 0.'); return; }
+
+            $('#saveProductBtn').html('<i class="fa-solid fa-spinner fa-spin"></i> Saving...');
+
+            var formData = new FormData();
+            formData.append('productId', productId);
+            formData.append('productName', name);
+            formData.append('category', category);
+            formData.append('price', price);
+            formData.append('stock', stock);
+            formData.append('threshold', threshold);
+            if (fileInput) {
+                formData.append('imageFile', fileInput);
+            }
+
+            $.ajax({
+                url: '/Admin/AddProductAjax',
+                method: 'POST',
+                headers: { 'RequestVerificationToken': token },
+                data: formData,
+                processData: false,
+                contentType: false,
+                success: function (res) {
+                    if (res.success) {
+                        $('#addProductModal').fadeOut(200);
+                        resetForm();
+                        showToast(res.message, 'success');
+                        setTimeout(() => location.reload(), 800);
+                    } else {
+                        showFormErr(res.message);
+                        $('#saveProductBtn').html('<i class="fa-solid fa-floppy-disk"></i> Save Product');
+                    }
+                },
+                error: function () {
+                    showFormErr('Server error. Please try again.');
+                    $('#saveProductBtn').html('<i class="fa-solid fa-floppy-disk"></i> Save Product');
+                }
+            });
+        });
+
+        $(document).on('click', '.btn-delete-product', function () {
+            const id   = $(this).data('id');
+            const name = $(this).data('name');
+            if (!confirm(`Delete "${name}"? This cannot be undone.`)) return;
+            const $row = $(this).closest('tr');
+            $.ajax({
+                url: '/Admin/DeleteProductAjax',
+                method: 'POST',
+                headers: { 'RequestVerificationToken': token },
+                data: { productId: id },
+                success: function (res) {
+                    if (res.success) {
+                        $row.fadeOut(300, () => $row.remove());
+                        showToast(res.message, 'success');
+                    } else {
+                        showToast(res.message, 'error');
+                    }
+                },
+                error: () => showToast('Server error. Please try again.', 'error')
+            });
+        });
+
+        $('#stockFilter').on('change', function () {
+            const val = $(this).val();
+            $('.table-biz tbody tr').each(function () {
+                const badgeTxt = $(this).find('.badge-biz').last().text().toLowerCase();
+                if (!val) { $(this).show(); return; }
+                const show = val === 'low'
+                    ? (badgeTxt.includes('low') || badgeTxt.includes('critical'))
+                    : badgeTxt.includes('in stock');
+                $(this).toggle(show);
+            });
+        });
+
+        function showFormErr(msg) {
+            $('#addFormError').text(msg).show();
+        }
+
+        function showToast(msg, type) {
+            const t = $(`<div class="toast-biz ${type}">${msg}</div>`);
+            $('#toast-container').append(t);
+            setTimeout(() => t.fadeOut(400, () => t.remove()), 3500);
+        }
+    </script>
+}

@@ -1,0 +1,42 @@
+# Build artifacts
+obj/
+bin/
+
+# Logs and scratch files (never commit these)
+*.log
+*.txt
+build_*.txt
+build_*.log
+build*.log
+e.log
+e_utf8.log
+err.txt
+error.txt
+*.csv
+sp_*.txt
+db_*.txt
+
+# SQL scratch files (keep Database/ folder but not root-level SQL scratch)
+db_Fulfillment.sql
+fix_dashboard_manual.sql
+fix_sp_imageurl.sql
+migrate_attendance.sql
+update_fulfillment.sql
+update_fulfillment2.sql
+update_images.sql
+update_robust.sql
+update_sps.sql
+
+# IDE artifacts
+.vs/
+.vscode/
+*.user
+
+# Secrets — NEVER commit production appsettings
+appsettings.Production.json
+
+# Docker build context exclusions
+Dockerfile
+.dockerignore
+screenshots/
+bizsuite diagram.jpg

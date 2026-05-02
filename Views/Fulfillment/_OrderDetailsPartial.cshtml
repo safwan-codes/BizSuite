@@ -1,0 +1,226 @@
+@model BizSuite.Models.OrderDetailViewModel
+@{
+    var header  = Model.Header;
+    var fStatus = header.FulfillmentStatus?.ToLower() ?? "pending";
+
+    bool isConfirmed      = true;
+    bool isOnWay          = fStatus is "shipped" or "delivered";
+    bool isOutForDelivery = fStatus == "delivered";
+    bool isDelivered      = fStatus == "delivered";
+
+    int pct = isDelivered ? 100 : (isOutForDelivery ? 66 : (isOnWay ? 33 : 0));
+
+    string StepClass(bool done, bool active) => done ? "done" : (active ? "active" : "");
+}
+
+<div class="row g-4">
+
+    <!-- ── Left Column ── -->
+    <div class="col-lg-8">
+
+        <!-- Progress Tracker Card -->
+        <div class="panel" style="margin-bottom:20px;">
+            <div class="panel-header">
+                <span class="panel-title"><i class="fas fa-route panel-icon"></i> Shipment Progress</span>
+                <span class="pill-badge pill-success"><i class="fas fa-circle-check me-1"></i>Order Confirmed</span>
+            </div>
+            <div class="stepper-wrap">
+                <div class="stepper-track">
+                    <!-- progress line -->
+                    <div class="stepper-line">
+                        <div class="stepper-progress-fill" style="width:@pct%;"></div>
+                    </div>
+
+                    <!-- Step 1: Confirmed -->
+                    <div class="step-item @StepClass(isOnWay, isConfirmed && !isOnWay)">
+                        <div class="step-circle"><i class="fas fa-receipt"></i></div>
+                        <div class="step-label">Confirmed</div>
+                        <div class="step-date">@DateTime.Parse(header.OrderDate).ToString("MMM dd")</div>
+                    </div>
+
+                    <!-- Step 2: Packed -->
+                    <div class="step-item @StepClass(isOutForDelivery, isOnWay && !isOutForDelivery)">
+                        <div class="step-circle"><i class="fas fa-boxes"></i></div>
+                        <div class="step-label">@(fStatus is "pending" or "processing" ? "Awaiting Pack" : "Packed")</div>
+                        <div class="step-date">@(string.IsNullOrEmpty(header.ShippedDate) ? "Pending" : DateTime.Parse(header.ShippedDate).ToString("MMM dd"))</div>
+                    </div>
+
+                    <!-- Step 3: Out for Delivery -->
+                    <div class="step-item @StepClass(isDelivered, isOutForDelivery && !isDelivered)">
+                        <div class="step-circle"><i class="fas fa-truck-fast"></i></div>
+                        <div class="step-label">@(fStatus == "shipped" ? "Awaiting Dispatch" : "Out for Delivery")</div>
+                        <div class="step-date">@(string.IsNullOrEmpty(header.ShippedDate) ? "—" : DateTime.Parse(header.ShippedDate).ToString("MMM dd"))</div>
+                    </div>
+
+                    <!-- Step 4: Delivered -->
+                    <div class="step-item @StepClass(false, isDelivered)">
+                        <div class="step-circle"><i class="fas fa-house"></i></div>
+                        <div class="step-label">Delivered</div>
+                        <div class="step-date">@(isDelivered && !string.IsNullOrEmpty(header.ShippedDate) ? DateTime.Parse(header.ShippedDate).ToString("MMM dd") : "—")</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Items Table Card -->
+        <div class="panel" style="margin-bottom:20px;">
+            <div class="panel-header">
+                <span class="panel-title"><i class="fas fa-receipt panel-icon"></i> Order Items</span>
+            </div>
+            <table class="table-biz">
+                <tbody>
+                    @foreach (var item in Model.Items)
+                    {
+                        <tr>
+                            <td style="padding: 16px 24px;">
+                                <div style="display:flex; align-items:center; gap:14px;">
+                                    <div class="product-thumb"><i class="fas fa-box-open"></i></div>
+                                    <div>
+                                        <div style="font-weight:600; color:var(--text-primary); font-size:14px; margin-bottom:3px;">@item.ProductName</div>
+                                        <div style="font-size:12px; color:var(--text-muted);">@item.UnitPrice.ToString("C") &times; @item.Quantity</div>
+                                    </div>
+                                </div>
+                            </td>
+                            <td style="text-align:right; padding-right:24px; font-weight:700; color:var(--text-primary); font-size:14px;">
+                                @item.LineTotal.ToString("C")
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+                <tfoot>
+                    <tr style="border-top: 1px solid rgba(255,255,255,0.08); background:rgba(255,255,255,0.02);">
+                        <td colspan="2" style="text-align:right; padding:20px 24px;">
+                            <span style="color:var(--text-muted); font-size:13px; margin-right:16px;">Order Total (incl. tax &amp; fees)</span>
+                            <span style="font-size:22px; font-weight:800; color:var(--text-primary);">@header.Total.ToString("C")</span>
+                        </td>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+
+        <!-- Customer & Shipping Info Card -->
+        <div class="panel" style="margin-bottom:20px;">
+            <div class="panel-header">
+                <span class="panel-title"><i class="fas fa-circle-info panel-icon"></i> Order Information</span>
+            </div>
+            <div style="padding:24px; display:grid; grid-template-columns:repeat(3,1fr); gap:24px;">
+                <div>
+                    <div class="info-label">Customer</div>
+                    <div class="info-value" style="margin-bottom:4px;">@header.Customer</div>
+                    <div style="font-size:12px; color:var(--text-muted);">@header.Email</div>
+                    <div style="font-size:12px; color:var(--text-muted);">@header.Phone</div>
+                </div>
+                <div>
+                    <div class="info-label">Payment</div>
+                    <div style="margin-bottom:8px;">
+                        <span class="badge-biz @(header.Status == "Paid" ? "success" : "warning")">
+                            <span class="badge-dot"></span>@header.Status
+                        </span>
+                    </div>
+                    <div style="font-size:13px; color:var(--text-secondary);">@header.PaymentMethod</div>
+                </div>
+                <div>
+                    <div class="info-label">Delivery Address</div>
+                    <div style="display:flex; align-items:flex-start; gap:4px;">
+                        <span class="info-value" id="addrText" style="line-height:1.5; font-size:13px;">@header.Address</span>
+                        <button class="btn-copy" onclick="copyToClipboard('addrText')" title="Copy address">
+                            <i class="far fa-copy"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ── Right Column: Admin Actions ── -->
+    <div class="col-lg-4">
+        <div class="panel" style="position:sticky; top:90px;">
+            <div class="panel-header">
+                <span class="panel-title"><i class="fas fa-sliders panel-icon"></i> Admin Actions</span>
+            </div>
+            <div style="padding:24px;">
+                @if (fStatus is "pending" or "processing")
+                {
+                    <div style="text-align:center; margin-bottom:24px;">
+                        <div style="width:64px;height:64px;border-radius:16px;background:rgba(251,191,36,0.12);display:flex;align-items:center;justify-content:center;margin:0 auto 12px;color:var(--warning);font-size:28px;">
+                            <i class="fas fa-box-open"></i>
+                        </div>
+                        <h5 style="color:var(--text-primary);font-weight:700;margin-bottom:6px;">Fulfillment Pending</h5>
+                        <p style="font-size:13px; color:var(--text-secondary); margin:0;">Items are ready to be securely boxed and prepared for carrier pickup.</p>
+                    </div>
+
+                    <form class="ajax-action-form" asp-action="PackOrder" method="post">
+                        <input type="hidden" name="orderId" value="@header.OrderId" />
+                        <button type="submit" class="btn-fulfill-action">
+                            <i class="fas fa-box-archive"></i> Mark as Packed
+                        </button>
+                    </form>
+                }
+                else if (fStatus == "packed")
+                {
+                    <div style="text-align:center; margin-bottom:24px;">
+                        <div style="width:64px;height:64px;border-radius:16px;background:rgba(96,165,250,0.12);display:flex;align-items:center;justify-content:center;margin:0 auto 12px;color:var(--info);font-size:28px;">
+                            <i class="fas fa-truck-ramp-box"></i>
+                        </div>
+                        <h5 style="color:var(--text-primary);font-weight:700;margin-bottom:6px;">Assign Carrier &amp; Route</h5>
+                    </div>
+
+                    <form class="ajax-action-form" asp-action="ShipOrder" method="post">
+                        <input type="hidden" name="orderId" value="@header.OrderId" />
+
+                        <div style="margin-bottom:14px;">
+                            <label class="info-label" style="display:block; margin-bottom:6px;">Select Carrier</label>
+                            <select name="carrier" class="form-biz-control" required>
+                                <option value="" class="text-dark">Choose provider…</option>
+                                <option value="FedEx" class="text-dark">FedEx Express</option>
+                                <option value="UPS" class="text-dark">UPS Ground</option>
+                                <option value="Shiprocket" class="text-dark">Shiprocket Auto</option>
+                            </select>
+                        </div>
+                        <div style="margin-bottom:20px;">
+                            <label class="info-label" style="display:block; margin-bottom:6px;">Tracking Signature</label>
+                            <input type="text" name="trackingNumber" class="form-biz-control" placeholder="e.g. 1Z9999…" required />
+                        </div>
+
+                        <button type="submit" class="btn-fulfill-action">
+                            <i class="fas fa-paper-plane"></i> Confirm &amp; Dispatch
+                        </button>
+                    </form>
+                }
+                else
+                {
+                    <div style="text-align:center; margin-bottom:20px;">
+                        <div style="width:64px;height:64px;border-radius:16px;background:rgba(201,247,111,0.12);display:flex;align-items:center;justify-content:center;margin:0 auto 12px;color:var(--accent-lime);font-size:28px;">
+                            <i class="fas fa-clipboard-check"></i>
+                        </div>
+                        <h5 style="color:var(--text-primary);font-weight:700;margin-bottom:4px;">Dispatched Successfully</h5>
+                        <span class="badge-biz success"><span class="badge-dot"></span>Fulfilled</span>
+                    </div>
+
+                    <div style="background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.08); border-radius:var(--radius-md); padding:16px;">
+                        <div style="margin-bottom:14px;">
+                            <div class="info-label">Courier</div>
+                            <div class="info-value">@header.Carrier</div>
+                        </div>
+                        <div>
+                            <div class="info-label">Tracking Code</div>
+                            <div style="display:flex; align-items:center; gap:6px;">
+                                <span class="info-value" id="trkText" style="font-family:monospace; font-size:13px;">@header.TrackingNumber</span>
+                                <button class="btn-copy" type="button" onclick="copyToClipboard('trkText')" title="Copy tracking">
+                                    <i class="far fa-copy"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                }
+            </div>
+        </div>
+
+        <div style="margin-top:16px; text-align:center;">
+            <a href="/Fulfillment/Index" class="btn-biz-secondary" style="display:inline-flex;">
+                <i class="fas fa-arrow-left me-2"></i> Back to Queue
+            </a>
+        </div>
+    </div>
+
+</div>

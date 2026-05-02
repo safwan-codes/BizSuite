@@ -1,0 +1,381 @@
+
+@{
+    Layout = null;
+    bool showRegister = ViewBag.ShowRegister != null;
+}
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BizSuite | Authentication</title>
+    
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/@@phosphor-icons/web"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <style>
+        :root {
+            --theme-bg: #0f3d2f;      
+            --theme-dark: #071912;
+            --accent-lime: #cbfb45;   
+            --accent-mint: #7ee3c4;
+            --form-bg: #f4f7f6; 
+            --input-bg: #e6efe9; 
+            --text-dark: #0f3d2f;
+            --text-muted: #64748b;
+            --success: #4ade80;
+        }
+
+        .blended-logo {
+            width: 100%;
+            max-width: 260px; 
+            mix-blend-mode: screen; 
+            filter: contrast(1.2) brightness(1.1); 
+            margin-bottom: 1.5rem;
+            -webkit-mask-image: radial-gradient(ellipse at center, black 45%, transparent 75%);
+            mask-image: radial-gradient(ellipse at center, black 45%, transparent 75%);
+        }
+
+        body, html {
+            height: 100%; margin: 0;
+            font-family: 'Outfit', sans-serif;
+            background-color: var(--theme-dark);
+            overflow-x: hidden;
+        }
+
+        .speckle-pattern {
+            position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; z-index: 0;
+            background-image: radial-gradient(var(--accent-lime) 1px, transparent 1px), radial-gradient(var(--accent-lime) 1.5px, transparent 1.5px);
+            background-size: 60px 60px, 90px 90px;
+            background-position: 0 0, 30px 30px;
+            opacity: 0.15; 
+        }
+
+        .login-wrapper {
+            position: relative; z-index: 10; min-height: 100vh;
+            display: flex; align-items: center; justify-content: center; padding: 1rem;
+        }
+
+        .split-card {
+            display: flex; width: 100%; max-width: 1000px; min-height: 600px;
+            background-color: var(--form-bg); border-radius: 30px;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5); overflow: hidden; 
+        }
+
+        .brand-side {
+            flex: 1; background-color: var(--theme-bg); color: #ffffff;
+            padding: 3rem; display: flex; flex-direction: column; justify-content: center; align-items: center;
+            text-align: center; position: relative; z-index: 1;
+            transition: all 0.3s ease;
+        }
+
+        .brand-side::before {
+            content: ''; position: absolute; bottom: -20%; right: -20%;
+            width: 300px; height: 300px; background: rgba(203, 251, 69, 0.1); border-radius: 50%; z-index: -1;
+        }
+        .brand-side::after {
+            content: ''; position: absolute; top: -10%; left: -20%;
+            width: 400px; height: 400px; background: linear-gradient(135deg, var(--theme-dark) 0%, transparent 100%);
+            border-radius: 50%; z-index: -1;
+        }
+
+        .form-side { flex: 1; padding: 3rem 3rem; display: flex; flex-direction: column; justify-content: center; }
+        .form-title { color: var(--text-dark); font-weight: 700; font-size: 2rem; text-align: center; margin-bottom: 0.25rem; }
+        .form-subtitle { color: var(--text-muted); text-align: center; font-size: 0.95rem; margin-bottom: 2.5rem; }
+        .input-group-custom { position: relative; margin-bottom: 1.25rem; }
+        
+        .form-control {
+            background-color: var(--input-bg); border: 1px solid transparent; border-radius: 50px; 
+            padding: 0.85rem 1.5rem 0.85rem 3.2rem; color: var(--text-dark); font-weight: 500; transition: all 0.3s;
+        }
+        .form-control:focus {
+            background-color: #ffffff; border-color: var(--accent-lime); box-shadow: 0 0 0 4px rgba(203, 251, 69, 0.2);
+        }
+        .form-control::placeholder { color: #8fa198; font-weight: 400; }
+        .input-icon { position: absolute; left: 20px; top: 50%; transform: translateY(-50%); color: var(--text-dark); font-size: 1.2rem; z-index: 5; opacity: 0.6; }
+
+        .btn-primary {
+            background-color: var(--accent-lime); color: var(--text-dark); border: none; border-radius: 50px; 
+            padding: 0.9rem; font-weight: 700; font-size: 1.05rem; width: 100%; margin-top: 1rem;
+            box-shadow: 0 4px 15px rgba(203, 251, 69, 0.4); transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .btn-primary:hover { background-color: #d8fc6c; transform: translateY(-2px); box-shadow: 0 8px 25px rgba(203, 251, 69, 0.5); color: var(--theme-dark); }
+
+        .view-section { display: none; }
+        .view-section.active { display: block; animation: fadeIn 0.4s ease forwards; }
+
+        @@keyframes fadeIn { from { opacity: 0; transform: translateX(10px); } to { opacity: 1; transform: translateX(0); } }
+
+        .toggle-link { color: var(--theme-bg); cursor: pointer; font-weight: 700; text-decoration: none; }
+        .toggle-link:hover { text-decoration: underline; color: var(--accent-lime); }
+
+        .dropdown-menu-custom {
+            position: absolute; top: 100%; left: 0; width: 100%; background: #ffffff; border: 1px solid rgba(0,0,0,0.1);
+            border-radius: 18px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); z-index: 100; margin-top: 5px; display: none; overflow: hidden; padding: 0.5rem 0;
+        }
+        .dropdown-menu-custom.show { display: block; }
+        .dropdown-item-custom { padding: 0.6rem 1.5rem; cursor: pointer; color: var(--text-dark); font-size: 0.95rem; display: flex; align-items: center; gap: 10px; }
+        .dropdown-item-custom:hover { background-color: var(--input-bg); color: var(--theme-dark); }
+        .dropdown-item-custom i { color: var(--text-muted); font-size: 1.1rem; }
+
+        .value-prop-box {
+            background: rgba(255,255,255,0.05); border: 1px solid rgba(201,247,111,0.15); border-radius: 12px;
+            padding: 16px; display: flex; align-items: center; gap: 16px; text-align: left; margin-bottom: 12px;
+        }
+
+        @@media (max-width: 768px) {
+            .split-card { flex-direction: column; }
+            .brand-side { padding: 3rem 2rem; border-radius: 30px 30px 0 0; }
+            .form-side { padding: 3rem 2rem; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="speckle-pattern"></div>
+
+    <div class="login-wrapper">
+        <div class="split-card">
+            
+            <div class="brand-side">
+                <img src="/images/Bizsuite-Logo.jpg" alt="BizSuite Logo" class="blended-logo" onerror="this.style.display='none'">
+                
+                <h2 class="fw-bold mb-3" id="brandTitle">Welcome Back!</h2>
+                <p id="brandSubtitle" style="color: rgba(255,255,255,0.7); font-size: 1rem; max-width: 280px; margin: 0 auto; margin-bottom: 20px;">
+                    Log in to your Bizsuite Workspace and continue managing your business with ease.
+                </p>
+
+                <div id="brandValueProps" style="display: none; flex-direction: column; width: 100%; max-width: 340px;">
+                    <div class="value-prop-box">
+                        <div style="width:40px; height:40px; border-radius:10px; background:rgba(201,247,111,0.12); display:flex; align-items:center; justify-content:center; flex-shrink:0;">
+                            <i class="fa-solid fa-rocket" style="color:var(--accent-lime); font-size:17px;"></i>
+                        </div>
+                        <div>
+                            <div style="font-size:14px; font-weight:600; color:white;">Free forever plan</div>
+                            <div style="font-size:12px; color:rgba(255,255,255,0.6); margin-top:2px;">Up to 100 customers & 50 products</div>
+                        </div>
+                    </div>
+                    <div class="value-prop-box" style="border-color: rgba(126,227,196,0.12);">
+                        <div style="width:40px; height:40px; border-radius:10px; background:rgba(126,227,196,0.1); display:flex; align-items:center; justify-content:center; flex-shrink:0;">
+                            <i class="fa-solid fa-shield-halved" style="color:var(--accent-mint); font-size:17px;"></i>
+                        </div>
+                        <div>
+                            <div style="font-size:14px; font-weight:600; color:white;">Enterprise-grade security</div>
+                            <div style="font-size:12px; color:rgba(255,255,255,0.6); margin-top:2px;">Data encrypted at rest & in transit</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="form-side">
+                
+                @if (ViewBag.ErrorMessage != null)
+                {
+                    <div class="alert alert-danger text-center py-2 mb-3 rounded-pill" role="alert" style="font-size: 0.85rem;">
+                        @ViewBag.ErrorMessage
+                    </div>
+                }
+
+                <div id="loginView" class="view-section @(!showRegister ? "active" : "")">
+                    <h2 class="form-title">Welcome</h2>
+                    <p class="form-subtitle">Login to your Workspace to continue.</p>
+
+                    <form asp-controller="Auth" asp-action="Login" method="post" class="needs-validation" id="loginForm" novalidate>
+                        @Html.AntiForgeryToken()
+                        
+                        <div asp-validation-summary="ModelOnly" class="alert alert-danger py-2 mb-3 rounded-pill" style="font-size: 0.85rem; text-align:center;"></div>
+                        
+                        <div class="input-group-custom mb-3">
+                            <i class="ph ph-envelope-simple input-icon"></i>
+                            <input type="email" id="loginEmail" name="email" class="form-control" placeholder="Enter your Registered Email" required autocomplete="off">
+                            <div id="recentLoginsDropdown" class="dropdown-menu-custom"></div>
+                        </div>
+
+                        <div class="input-group-custom">
+                            <i class="ph ph-lock-key input-icon"></i>
+                            <input type="password" id="loginPassword" name="password" class="form-control" placeholder="Enter Valid Password" required>
+                        </div>
+
+                        <div class="text-end mb-3">
+                            <a href="@Url.Action("ForgotPassword", "Auth")" style="color: var(--text-muted); font-size: 0.85rem; text-decoration: none;">Forgot your password?</a>
+                        </div>
+
+                        <button type="submit" class="btn btn-primary">SIGN IN</button>
+
+                        <div class="text-center mt-4" style="color: var(--text-muted); font-size: 0.95rem;">
+                            Don't have an account? <span class="toggle-link" onclick="switchView('registerView')">Create Workspace</span>
+                        </div>
+                    </form>
+                </div>
+
+                <div id="registerView" class="view-section @(showRegister ? "active" : "")">
+                    <h2 class="form-title">Register Now!</h2>
+                    <p class="form-subtitle">Create your New Workspace</p>
+
+                    <form asp-controller="Auth" asp-action="Register" method="post" class="needs-validation" id="regForm" novalidate>
+                        @Html.AntiForgeryToken()
+                        
+                        <div asp-validation-summary="ModelOnly" class="alert alert-danger py-2 mb-3 rounded-pill" style="font-size: 0.85rem; text-align:center;"></div>
+                        
+                        <div class="input-group-custom">
+                            <i class="fa-solid fa-building input-icon"></i>
+                            <input type="text" name="CompanyName" class="form-control" placeholder="Company Name" required>
+                        </div>
+
+                        <div class="input-group-custom">
+                            <i class="fa-solid fa-user input-icon"></i>
+                            <input type="text" name="FullName" class="form-control" placeholder="Your Full Name" required>
+                        </div>
+                        
+                        <div class="input-group-custom">
+                            <i class="fa-solid fa-envelope input-icon"></i>
+                            <input type="email" name="Email" class="form-control" placeholder="Work Email" required>
+                        </div>
+                        
+                        <div class="input-group-custom" style="margin-bottom: 0.5rem;">
+                            <i class="fa-solid fa-lock input-icon"></i>
+                            <input type="password" name="Password" id="regPwd" class="form-control" placeholder="Create Password (min 6 chars)" minlength="6" required>
+                        </div>
+
+                        <div style="display:flex; gap:4px; margin-bottom:1.25rem;" id="strengthBars">
+                            <div class="strength-bar" style="height:4px; flex:1; background:#e5e7eb; border-radius:4px;"></div>
+                            <div class="strength-bar" style="height:4px; flex:1; background:#e5e7eb; border-radius:4px;"></div>
+                            <div class="strength-bar" style="height:4px; flex:1; background:#e5e7eb; border-radius:4px;"></div>
+                            <div class="strength-bar" style="height:4px; flex:1; background:#e5e7eb; border-radius:4px;"></div>
+                        </div>
+
+                        <div class="input-group-custom">
+                            <i class="fa-solid fa-lock input-icon"></i>
+                            <input type="password" name="ConfirmPassword" class="form-control" placeholder="Confirm Password" required>
+                        </div>
+
+                        <div style="margin-bottom:1rem; padding-left: 0.5rem;">
+                            <label style="display:flex; align-items:flex-start; gap:8px; font-size:13px; color:var(--text-muted); cursor:pointer;">
+                                <input type="checkbox" required style="margin-top:2px; width:16px; height:16px; accent-color:#0F3D33; flex-shrink:0;" />
+                                <span>I agree to BizSuite's <a href="/Auth/Terms" target="_blank" style="color:#0F3D33; font-weight:600;">Terms</a> and <a href="/Auth/Privacy" target="_blank" style="color:#0F3D33; font-weight:600;">Privacy</a></span>
+                            </label>
+                        </div>
+
+                        <button type="submit" class="btn btn-primary" id="regBtn">Create Workspace</button>
+
+                        <div class="text-center mt-4" style="color: var(--text-muted); font-size: 0.95rem;">
+                            Already have an account? <span class="toggle-link" onclick="switchView('loginView')">Sign in</span>
+                        </div>
+                    </form>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script>
+        function switchView(viewId) {
+            document.querySelectorAll('.view-section').forEach(v => v.classList.remove('active'));
+            document.getElementById(viewId).classList.add('active');
+            
+            const brandTitle = document.getElementById('brandTitle');
+            const brandSub = document.getElementById('brandSubtitle');
+            const valueProps = document.getElementById('brandValueProps');
+
+            if (viewId === 'registerView') {
+                brandTitle.textContent = 'Join BizSuite';
+                brandSub.textContent = 'Start managing your business smarter today.';
+                valueProps.style.display = 'flex'; 
+            } else {
+                brandTitle.textContent = 'Welcome Back!';
+                brandSub.textContent = 'Log in to your Bizsuite Workspace and continue managing your business with ease.';
+                valueProps.style.display = 'none'; 
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            if ('@showRegister'.toLowerCase() === 'true') {
+                switchView('registerView');
+            } else {
+                switchView('loginView');
+            }
+            loadRecentLogins();
+        });
+
+        const RECENT_USERS_KEY = 'bizsuite_recent_users';
+
+        function loadRecentLogins() {
+            const usersStr = localStorage.getItem(RECENT_USERS_KEY);
+            if (!usersStr) return;
+            const users = JSON.parse(usersStr);
+            if (users.length === 0) return;
+
+            const dropdown = document.getElementById('recentLoginsDropdown');
+            dropdown.innerHTML = ''; 
+            
+            users.forEach(email => {
+                const item = document.createElement('div');
+                item.className = 'dropdown-item-custom';
+                item.innerHTML = `<i class="ph ph-clock-counter-clockwise"></i> ${email}`;
+                item.onmousedown = (e) => {
+                    e.preventDefault();
+                    document.getElementById('loginEmail').value = email;
+                    document.getElementById('loginPassword').focus(); 
+                    dropdown.classList.remove('show');
+                };
+                dropdown.appendChild(item);
+            });
+            
+            const emailInput = document.getElementById('loginEmail');
+            emailInput.addEventListener('focus', () => {
+                if (JSON.parse(localStorage.getItem(RECENT_USERS_KEY) || '[]').length > 0) {
+                    dropdown.classList.add('show');
+                }
+            });
+            emailInput.addEventListener('blur', () => {
+                dropdown.classList.remove('show');
+            });
+        }
+
+        function saveRecentLogin(email) {
+            if (!email) return;
+            let users = JSON.parse(localStorage.getItem(RECENT_USERS_KEY) || '[]');
+            users = users.filter(u => u !== email);
+            users.unshift(email); 
+            if (users.length > 3) users.pop(); 
+            localStorage.setItem(RECENT_USERS_KEY, JSON.stringify(users));
+        }
+
+        $(function () {
+            $('#regPwd').on('input', function () {
+                const val     = $(this).val();
+                const score   = Math.min(4, Math.floor(val.length / 3));
+                const colors  = ['', '#f87171', '#fbbf24', '#4ade80', '#C9F76F'];
+                $('.strength-bar').each(function (i) {
+                    $(this).css('background', i < score ? colors[score] : '#e5e7eb');
+                });
+            });
+
+            $('#regForm').on('submit', function (e) {
+                if (!this.checkValidity()) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                } else {
+                    $('#regBtn').html('<i class="fa-solid fa-spinner fa-spin"></i> Creating Workspace...').prop('disabled', true);
+                }
+                this.classList.add('was-validated');
+            });
+
+            $('#loginForm').on('submit', function (e) {
+                if (!this.checkValidity()) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                } else {
+                    const emailInput = document.getElementById('loginEmail');
+                    if (emailInput) saveRecentLogin(emailInput.value);
+                }
+                this.classList.add('was-validated');
+            });
+        });
+    </script>
+</body>
+</html>

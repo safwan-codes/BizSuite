@@ -1,0 +1,62 @@
+@model BizSuite.Models.CustomerViewModel
+@{
+    Layout = "_AppLayout";
+    ViewData["Title"] = "Add Customer";
+}
+
+<div class="page-header">
+    <div class="breadcrumb-biz">
+        <i class="fa-solid fa-house"></i>
+        <span class="sep">/</span><a href="/Admin/Customers">Customers</a>
+        <span class="sep">/</span><span>Add Customer</span>
+    </div>
+    <h1><span>Add</span> Customer</h1>
+    <p>Create a new CRM contact profile.</p>
+</div>
+
+<div class="panel" style="max-width:800px;">
+    <div class="panel-header">
+        <div class="panel-title">
+            <i class="fa-solid fa-user-plus panel-icon"></i> Customer Profile Details
+        </div>
+    </div>
+    <div class="panel-body">
+        <form asp-action="CreateCustomer" method="post" enctype="multipart/form-data">
+            <div asp-validation-summary="ModelOnly" class="validation-err mb-16"></div>
+
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:20px;">
+                <div style="grid-column:1/-1;">
+                    <label class="form-label-biz" asp-for="CustomerName">Full Name / Company Name *</label>
+                    <input asp-for="CustomerName" class="form-input-biz" placeholder="e.g. Acme Corp or John Doe" />
+                    <span asp-validation-for="CustomerName"></span>
+                </div>
+                <div>
+                    <label class="form-label-biz" asp-for="Email">Email Address *</label>
+                    <input asp-for="Email" type="email" class="form-input-biz" placeholder="john@example.com" />
+                    <span asp-validation-for="Email"></span>
+                </div>
+                <div>
+                    <label class="form-label-biz" asp-for="Phone">Phone Number *</label>
+                    <input asp-for="Phone" class="form-input-biz" placeholder="+91 9876543210" />
+                    <span asp-validation-for="Phone"></span>
+                </div>
+                <div style="grid-column:1/-1;">
+                    <label class="form-label-biz" asp-for="Address">Address / Location</label>
+                    <textarea asp-for="Address" class="form-input-biz" style="min-height:80px; resize:vertical;"></textarea>
+                    <span asp-validation-for="Address"></span>
+                </div>
+                <div style="grid-column:1/-1;">
+                    <label class="form-label-biz">Customer Logo / Picture</label>
+                    <input type="file" name="ImageFile" accept="image/*" class="form-input-biz" />
+                </div>
+            </div>
+
+            <div class="d-flex gap-16" style="margin-top:32px; padding-top:24px; border-top:1px solid rgba(255,255,255,0.05);">
+                <button type="submit" class="quick-action-btn">
+                    <i class="fa-solid fa-floppy-disk"></i> Save Customer
+                </button>
+                <a href="/Admin/Customers" class="btn-biz-outline" style="padding:10px 20px;">Cancel</a>
+            </div>
+        </form>
+    </div>
+</div>

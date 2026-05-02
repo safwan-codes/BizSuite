@@ -1,0 +1,436 @@
+@model IEnumerable<BizSuite.Models.SalesOrderRow>
+@{
+    ViewData["Title"] = "Fulfillment";
+    Layout = "_AppLayout";
+}
+
+@section Styles {
+<style>
+    /* ── Fulfillment-specific overrides aligned to global design system ── */
+
+    /* Row selection highlight using system accent */
+    .ful-row.selected td { background: rgba(201,247,111,0.06) !important; }
+    .ful-row.selected td:first-child { border-left: 3px solid var(--accent-lime); }
+
+    /* Checkbox accent */
+    input[type='checkbox'] { accent-color: var(--accent-lime); cursor: pointer; }
+
+    /* Product tag chips */
+    .tag-chip {
+        display: inline-flex; align-items: center;
+        background: rgba(126,227,196,0.1);
+        color: var(--accent-mint);
+        border: 1px solid rgba(126,227,196,0.18);
+        border-radius: var(--radius-pill);
+        padding: 2px 9px;
+        font-size: 11px; font-weight: 600;
+        margin: 2px 3px 2px 0;
+        white-space: nowrap;
+    }
+    .tag-chip.v2 { background: rgba(201,247,111,0.08); color: var(--accent-lime); border-color: rgba(201,247,111,0.18); }
+    .tag-chip.v3 { background: rgba(251,191,36,0.08); color: var(--warning); border-color: rgba(251,191,36,0.18); }
+
+    /* Order number */
+    .order-num { color: var(--text-primary); font-weight: 700; font-family: monospace; font-size: 13px; }
+
+    /* Bulk bar */
+    .bulk-bar {
+        position: fixed;
+        bottom: -100px;
+        left: 50%; transform: translateX(-50%);
+        background: var(--accent-lime);
+        color: var(--text-dark);
+        padding: 12px 28px;
+        border-radius: var(--radius-pill);
+        box-shadow: 0 10px 30px rgba(201,247,111,0.25);
+        display: flex; align-items: center; gap: 16px;
+        transition: bottom 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        z-index: 1000;
+        font-weight: 700; font-size: 14px;
+        white-space: nowrap;
+    }
+    .bulk-bar.visible { bottom: 28px; }
+    .bulk-bar-btn {
+        background: rgba(0,0,0,0.12);
+        border: none;
+        color: var(--text-dark);
+        font-weight: 700; font-size: 12px;
+        padding: 6px 14px;
+        border-radius: var(--radius-pill);
+        cursor: pointer;
+        transition: background 0.2s;
+    }
+    .bulk-bar-btn:hover { background: rgba(0,0,0,0.22); }
+    .bulk-bar-sep { width: 1px; height: 22px; background: rgba(0,0,0,0.2); }
+
+    /* Side Drawer */
+    #sideDrawer {
+        position: fixed;
+        top: 0; right: -420px;
+        width: 420px; height: 100vh;
+        background: var(--bg-card-dark);
+        border-left: 1px solid rgba(126,227,196,0.1);
+        box-shadow: -12px 0 40px rgba(0,0,0,0.45);
+        transition: right 0.3s cubic-bezier(0.4,0,0.2,1);
+        z-index: 2000;
+        overflow-y: auto;
+        display: flex; flex-direction: column;
+    }
+    #sideDrawer.open { right: 0; }
+
+    .drawer-header {
+        display: flex; align-items: center; justify-content: space-between;
+        padding: 24px 28px 20px;
+        border-bottom: 1px solid rgba(255,255,255,0.07);
+        flex-shrink: 0;
+    }
+    .drawer-body { padding: 24px 28px; flex: 1; }
+    .drawer-field-label {
+        font-size: 10px; font-weight: 700;
+        text-transform: uppercase; letter-spacing: 1px;
+        color: var(--text-muted);
+        margin-bottom: 5px;
+    }
+    .drawer-field-value { font-size: 14px; font-weight: 500; color: var(--text-primary); }
+    .drawer-close-btn {
+        width: 32px; height: 32px;
+        display: flex; align-items: center; justify-content: center;
+        border-radius: 8px;
+        background: rgba(255,255,255,0.06);
+        border: none; cursor: pointer;
+        color: var(--text-muted); font-size: 16px;
+        transition: var(--transition);
+    }
+    .drawer-close-btn:hover { background: rgba(255,255,255,0.1); color: var(--text-primary); }
+
+    #drawerOverlay {
+        position: fixed; inset: 0;
+        background: rgba(0,0,0,0.45);
+        z-index: 1999; display: none;
+    }
+    #drawerOverlay.open { display: block; }
+
+    /* Star */
+    .star-btn { background: none; border: none; cursor: pointer; color: var(--text-muted); font-size: 15px; transition: color 0.2s; padding: 2px; }
+    .star-btn:hover { color: var(--warning); }
+    .star-btn.starred { color: var(--warning); }
+</style>
+}
+
+<div class="page-header">
+    <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:12px;">
+        <div>
+            <h1><i class="fas fa-boxes-stacking me-2" style="color:var(--accent-lime);"></i>Fulfillment <span>Queue</span></h1>
+            <p>Manage, pack and dispatch customer orders from this workspace.</p>
+        </div>
+        <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
+            <div class="filter-search">
+                <i class="fas fa-magnifying-glass filter-search-icon"></i>
+                <input type="text" id="searchInput" placeholder="Search customer, order ID…" oninput="filterTable()" />
+            </div>
+            <select class="filter-select" id="statusFilter" onchange="filterTable()">
+                <option value="">All Statuses</option>
+                <option value="Pending">Pending</option>
+                <option value="Processing">Processing</option>
+                <option value="Packed">Packed</option>
+                <option value="Shipped">Shipped</option>
+                <option value="Delivered">Delivered</option>
+            </select>
+            <button class="btn-action" style="padding:9px 18px;">
+                <i class="fas fa-download me-1"></i> Export Wave
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- KPI Strip -->
+@{
+    var total     = Model.Count();
+    var pending   = Model.Count(x => (x.FulfillmentStatus ?? "Pending").ToLower() == "pending");
+    var processing= Model.Count(x => (x.FulfillmentStatus ?? "").ToLower() == "processing");
+    var packed    = Model.Count(x => (x.FulfillmentStatus ?? "").ToLower() == "packed");
+    var shipped   = Model.Count(x => (x.FulfillmentStatus ?? "").ToLower() is "shipped" or "delivered");
+}
+<div class="kpi-grid" style="grid-template-columns: repeat(4,1fr); margin-bottom: 24px;">
+    <div class="kpi-card lime">
+        <div class="kpi-card-header">
+            <span class="kpi-card-label">Total Orders</span>
+            <div class="kpi-icon lime"><i class="fas fa-list-check"></i></div>
+        </div>
+        <div class="kpi-value">@total</div>
+    </div>
+    <div class="kpi-card warn">
+        <div class="kpi-card-header">
+            <span class="kpi-card-label">Pending</span>
+            <div class="kpi-icon warn"><i class="fas fa-clock"></i></div>
+        </div>
+        <div class="kpi-value">@pending</div>
+    </div>
+    <div class="kpi-card info">
+        <div class="kpi-card-header">
+            <span class="kpi-card-label">Processing</span>
+            <div class="kpi-icon info"><i class="fas fa-gear"></i></div>
+        </div>
+        <div class="kpi-value">@processing</div>
+    </div>
+    <div class="kpi-card mint">
+        <div class="kpi-card-header">
+            <span class="kpi-card-label">Packed / Shipped</span>
+            <div class="kpi-icon mint"><i class="fas fa-truck"></i></div>
+        </div>
+        <div class="kpi-value">@(packed + shipped)</div>
+    </div>
+</div>
+
+<!-- Main Table Panel -->
+<div class="panel">
+    <div class="panel-header">
+        <span class="panel-title"><i class="fas fa-table-list panel-icon"></i> Orders</span>
+        <div class="panel-actions">
+            <span id="selCountBadge" style="display:none;" class="badge-biz lime">
+                <span id="selCount">0</span> selected
+            </span>
+        </div>
+    </div>
+
+    <div style="overflow-x: auto; max-height: calc(100vh - 340px); overflow-y: auto;">
+        <table class="table-biz" id="fulfillmentTable">
+            <thead>
+                <tr>
+                    <th style="width:44px; text-align:center; padding-left:20px;">
+                        <input type="checkbox" id="selectAll" />
+                    </th>
+                    <th style="width:36px;"></th>
+                    <th>Date</th>
+                    <th>Customer</th>
+                    <th>Order #</th>
+                    <th style="min-width:200px;">Items</th>
+                    <th>Status</th>
+                    <th>Destination</th>
+                    <th style="text-align:center; width:70px;">Action</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var item in Model)
+                {
+                    string statusLabel = item.FulfillmentStatus ?? "Pending";
+                    string badgeClass  = statusLabel switch {
+                        "Packed" or "Shipped" or "Delivered" => "success",
+                        "Processing" => "info",
+                        _ => "warning"
+                    };
+
+                    var rnd = new Random(item.OrderId);
+
+                    <tr class="ful-row" data-status="@statusLabel" data-customer="@item.Customer" data-order="@item.OrderId" onclick="toggleRow(this)">
+                        <td style="text-align:center; padding-left:20px;" onclick="event.stopPropagation()">
+                            <input type="checkbox" class="row-check" />
+                        </td>
+                        <td onclick="event.stopPropagation()">
+                            <button class="star-btn"><i class="far fa-star"></i></button>
+                        </td>
+                        <td>
+                            @if (!string.IsNullOrEmpty(item.OrderDate))
+                            {
+                                @DateTime.Parse(item.OrderDate).ToString("MMM dd, HH:mm")
+                            }
+                            else
+                            {
+                                <text>—</text>
+                            }
+                        </td>
+                        <td>
+                            <div style="display:flex; align-items:center; gap:8px;">
+                                <div style="width:28px;height:28px;border-radius:50%;background:linear-gradient(135deg,var(--accent-lime),var(--accent-mint));display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:var(--text-dark);flex-shrink:0;">
+                                    @(string.IsNullOrEmpty(item.Customer) ? "?" : item.Customer.Substring(0,1).ToUpper())
+                                </div>
+                                <span style="color:var(--text-primary);font-weight:500;">@item.Customer</span>
+                            </div>
+                        </td>
+                        <td>
+                            <span class="order-num">O-@item.OrderId</span>
+                        </td>
+                        <td>
+                            @if (string.IsNullOrEmpty(item.ProductNames))
+                            {
+                                <span style="color:var(--text-muted); font-size:12px;">No items</span>
+                            }
+                            else
+                            {
+                                var products = item.ProductNames.Split(new[] { ", " }, StringSplitOptions.RemoveEmptyEntries);
+                                foreach (var pName in products)
+                                {
+                                    int v = rnd.Next(1, 4);
+                                    string vc = v == 2 ? "v2" : (v == 3 ? "v3" : "");
+                                    <span class="tag-chip @vc">@pName</span>
+                                }
+                            }
+                        </td>
+                        <td>
+                            <span class="badge-biz @badgeClass">
+                                <span class="badge-dot"></span>@statusLabel
+                            </span>
+                        </td>
+                        <td style="color:var(--text-secondary); font-size:12px; max-width:140px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">
+                            <i class="fas fa-location-dot me-1" style="color:var(--text-muted);"></i>
+                            @(!string.IsNullOrWhiteSpace(item.Address) ? item.Address : "—")
+                        </td>
+                        <td style="text-align:center;" onclick="event.stopPropagation()">
+                            <button class="btn-biz-outline" style="padding:5px 12px; font-size:11px;"
+                                    onclick="openDrawer(@item.OrderId, '@Html.Raw(item.Customer?.Replace("'","\\'")??"")','@statusLabel','@Html.Raw(item.Address?.Replace("'","\\'")??"")','@badgeClass')">
+                                View
+                            </button>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+
+        @if (!Model.Any())
+        {
+            <div class="empty-state">
+                <div class="empty-state-icon"><i class="fas fa-inbox"></i></div>
+                <h3>Queue is empty</h3>
+                <p>All orders have been processed. Excellent work!</p>
+            </div>
+        }
+    </div>
+</div>
+
+<!-- Bulk Action Bar -->
+<div class="bulk-bar" id="bulkBar">
+    <span><span id="bulkCount">0</span> Orders Selected</span>
+    <div class="bulk-bar-sep"></div>
+    <button class="bulk-bar-btn"><i class="fas fa-print me-1"></i> Print Labels</button>
+    <button class="bulk-bar-btn"><i class="fas fa-box me-1"></i> Mark Packed</button>
+    <button class="bulk-bar-btn" onclick="clearSelection()"><i class="fas fa-xmark me-1"></i> Clear</button>
+</div>
+
+<!-- Drawer Overlay -->
+<div id="drawerOverlay" onclick="closeDrawer()"></div>
+
+<!-- Side Drawer -->
+<div id="sideDrawer">
+    <div class="drawer-header">
+        <div>
+            <div style="font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:1px; color:var(--text-muted); margin-bottom:4px;">Order Preview</div>
+            <h4 style="margin:0; color:var(--text-primary); font-size:18px; font-weight:700;" class="order-num" id="drawOrderId">---</h4>
+        </div>
+        <button class="drawer-close-btn" onclick="closeDrawer()"><i class="fas fa-xmark"></i></button>
+    </div>
+
+    <div class="drawer-body">
+        <div style="margin-bottom:20px;">
+            <div class="drawer-field-label">Customer</div>
+            <div class="drawer-field-value" id="drawCustomer">---</div>
+        </div>
+        <div style="margin-bottom:20px;">
+            <div class="drawer-field-label">Fulfillment Status</div>
+            <div><span id="drawStatus" class="badge-biz warning"><span class="badge-dot"></span>---</span></div>
+        </div>
+        <div style="margin-bottom:28px;">
+            <div class="drawer-field-label">Delivery Destination</div>
+            <div class="drawer-field-value" id="drawAddress" style="line-height:1.5;">---</div>
+        </div>
+
+        <div style="border-top:1px solid rgba(255,255,255,0.07); padding-top:24px;">
+            <a id="drawLink" href="#" class="quick-action-btn" style="width:100%; justify-content:center;">
+                <i class="fas fa-arrow-up-right-from-square"></i> Open Full Details
+            </a>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+<script>
+    // ── Selection Logic ──────────────────────────────────────────
+    const selAll    = document.getElementById('selectAll');
+    const bulkBar   = document.getElementById('bulkBar');
+    const bulkCount = document.getElementById('bulkCount');
+    const selBadge  = document.getElementById('selCountBadge');
+    const selCount  = document.getElementById('selCount');
+
+    function getChecked() { return document.querySelectorAll('.row-check:checked'); }
+
+    function updateBulkBar() {
+        const n = getChecked().length;
+        bulkCount.textContent = n;
+        selCount.textContent  = n;
+        bulkBar.classList.toggle('visible', n > 0);
+        selBadge.style.display = n > 0 ? '' : 'none';
+        selAll.checked = n > 0 && n === document.querySelectorAll('.row-check:not([style*="display:none"])').length;
+    }
+
+    function setHighlight(tr, on) {
+        tr.classList.toggle('selected', on);
+    }
+
+    selAll?.addEventListener('change', e => {
+        document.querySelectorAll('.row-check').forEach(c => {
+            c.checked = e.target.checked;
+            setHighlight(c.closest('tr'), e.target.checked);
+        });
+        updateBulkBar();
+    });
+
+    document.querySelectorAll('.row-check').forEach(c => {
+        c.addEventListener('change', () => { setHighlight(c.closest('tr'), c.checked); updateBulkBar(); });
+    });
+
+    function toggleRow(tr) {
+        const c = tr.querySelector('.row-check');
+        c.checked = !c.checked;
+        setHighlight(tr, c.checked);
+        updateBulkBar();
+    }
+
+    function clearSelection() {
+        document.querySelectorAll('.row-check').forEach(c => { c.checked = false; setHighlight(c.closest('tr'), false); });
+        selAll.checked = false;
+        updateBulkBar();
+    }
+
+    // ── Star Toggle ──────────────────────────────────────────────
+    document.querySelectorAll('.star-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            btn.classList.toggle('starred');
+            const icon = btn.querySelector('i');
+            icon.className = btn.classList.contains('starred') ? 'fas fa-star' : 'far fa-star';
+        });
+    });
+
+    // ── Search + Status Filter ───────────────────────────────────
+    function filterTable() {
+        const q  = document.getElementById('searchInput').value.toLowerCase();
+        const sf = document.getElementById('statusFilter').value.toLowerCase();
+        document.querySelectorAll('#fulfillmentTable tbody tr.ful-row').forEach(tr => {
+            const cust   = (tr.dataset.customer || '').toLowerCase();
+            const order  = (tr.dataset.order    || '').toLowerCase();
+            const status = (tr.dataset.status   || '').toLowerCase();
+            const matchQ  = !q  || cust.includes(q)   || order.includes(q);
+            const matchSF = !sf || status === sf;
+            tr.style.display = matchQ && matchSF ? '' : 'none';
+        });
+    }
+
+    // ── Side Drawer ──────────────────────────────────────────────
+    function openDrawer(id, cust, status, addr, badgeClass) {
+        document.getElementById('drawOrderId').textContent = 'O-' + id;
+        document.getElementById('drawCustomer').textContent = cust || '—';
+        document.getElementById('drawAddress').textContent  = addr || '—';
+
+        const statEl = document.getElementById('drawStatus');
+        statEl.innerHTML = '<span class="badge-dot"></span>' + status;
+        statEl.className = 'badge-biz ' + (badgeClass || 'warning');
+
+        document.getElementById('drawLink').href = '/Fulfillment/Details/' + id;
+        document.getElementById('drawerOverlay').classList.add('open');
+        document.getElementById('sideDrawer').classList.add('open');
+    }
+
+    function closeDrawer() {
+        document.getElementById('drawerOverlay').classList.remove('open');
+        document.getElementById('sideDrawer').classList.remove('open');
+    }
+</script>
+}

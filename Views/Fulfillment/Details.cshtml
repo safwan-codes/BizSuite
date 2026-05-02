@@ -1,0 +1,192 @@
+@model BizSuite.Models.OrderDetailViewModel
+@{
+    var header = Model.Header;
+    ViewData["Title"] = "Order O-" + header.OrderId;
+    Layout = "_AppLayout";
+}
+
+@section Styles {
+<style>
+    /* ── Details page — aligned to global BizSuite design system ── */
+
+    /* Stepper */
+    .stepper-wrap { padding: 8px 16px 24px; }
+    .stepper-track {
+        display: flex; align-items: flex-start;
+        position: relative; gap: 0;
+    }
+    .stepper-line {
+        position: absolute; top: 22px; left: 44px; right: 44px; height: 2px;
+        background: rgba(255,255,255,0.07); z-index: 0;
+    }
+    .stepper-progress-fill {
+        height: 100%; background: var(--accent-lime);
+        border-radius: 2px; transition: width 0.5s ease;
+    }
+    .step-item {
+        flex: 1; display: flex; flex-direction: column;
+        align-items: center; position: relative; z-index: 1;
+    }
+    .step-circle {
+        width: 44px; height: 44px; border-radius: 50%;
+        display: flex; align-items: center; justify-content: center;
+        font-size: 16px;
+        background: var(--bg-dark);
+        border: 2px solid rgba(255,255,255,0.1);
+        color: var(--text-muted);
+        margin-bottom: 10px;
+        transition: var(--transition);
+    }
+    .step-item.active .step-circle {
+        background: rgba(251,191,36,0.15);
+        border-color: var(--warning);
+        color: var(--warning);
+        box-shadow: 0 0 0 4px rgba(251,191,36,0.1);
+    }
+    .step-item.done .step-circle {
+        background: rgba(201,247,111,0.15);
+        border-color: var(--accent-lime);
+        color: var(--accent-lime);
+    }
+    .step-label { font-size: 12px; font-weight: 600; color: var(--text-secondary); text-align: center; }
+    .step-date  { font-size: 11px; color: var(--text-muted); margin-top: 3px; text-align: center; }
+
+    /* Pill badges (used in partial) */
+    .pill-badge {
+        display: inline-flex; align-items: center; gap: 5px;
+        padding: 4px 12px; border-radius: var(--radius-pill);
+        font-size: 11px; font-weight: 700;
+        text-transform: uppercase; letter-spacing: 0.5px;
+    }
+    .pill-success { background: rgba(74,222,128,0.12); color: var(--success); }
+    .pill-warning { background: rgba(251,191,36,0.12); color: var(--warning); }
+
+    /* Product thumbnail in items table */
+    .product-thumb {
+        width: 46px; height: 46px;
+        border-radius: 10px;
+        background: rgba(255,255,255,0.05);
+        border: 1px solid rgba(255,255,255,0.08);
+        display: flex; align-items: center; justify-content: center;
+        flex-shrink: 0;
+        color: var(--text-muted); font-size: 18px;
+    }
+
+    /* Action button — primary lime */
+    .btn-fulfill-action {
+        display: flex; align-items: center; justify-content: center; gap: 8px;
+        width: 100%; padding: 14px 20px;
+        background: var(--accent-lime);
+        color: var(--text-dark);
+        font-size: 14px; font-weight: 700;
+        border-radius: var(--radius-pill);
+        border: none; cursor: pointer;
+        transition: var(--transition);
+    }
+    .btn-fulfill-action:hover {
+        background: var(--accent-lime-dark);
+        transform: translateY(-1px);
+        box-shadow: var(--shadow-glow);
+    }
+    .btn-fulfill-action:disabled {
+        opacity: .6; transform: none; cursor: not-allowed;
+    }
+
+    /* Copy button */
+    .btn-copy {
+        background: transparent; border: none;
+        color: var(--text-muted); cursor: pointer;
+        padding: 2px 6px; border-radius: 6px;
+        transition: var(--transition); font-size: 13px;
+    }
+    .btn-copy:hover { color: var(--accent-mint); background: rgba(126,227,196,0.08); }
+
+    /* Info grid inside panel */
+    .info-label {
+        font-size: 10px; font-weight: 700;
+        text-transform: uppercase; letter-spacing: 1px;
+        color: var(--text-muted); margin-bottom: 6px;
+    }
+    .info-value { font-size: 14px; font-weight: 500; color: var(--text-primary); }
+</style>
+}
+
+<!-- Page Header with Breadcrumb -->
+<div class="page-header">
+    <div style="display:flex; align-items:center; gap:10px; margin-bottom:6px; font-size:13px; color:var(--text-muted);">
+        <a href="/Fulfillment" style="color:var(--text-muted); text-decoration:none; transition:color .2s;"
+           onmouseover="this.style.color='var(--accent-mint)'" onmouseout="this.style.color='var(--text-muted)'">
+            <i class="fas fa-boxes-stacking me-1"></i>Fulfillment
+        </a>
+        <i class="fas fa-chevron-right" style="font-size:10px;"></i>
+        <span style="color:var(--text-secondary);">Orders</span>
+        <i class="fas fa-chevron-right" style="font-size:10px;"></i>
+        <span style="color:var(--text-primary); font-weight:600;">O-@header.OrderId</span>
+    </div>
+    <h1>Order <span>O-@header.OrderId</span></h1>
+    <p>View order tracking, items, customer information and dispatch controls.</p>
+</div>
+
+<div id="detailsWrapper">
+    <partial name="_OrderDetailsPartial" model="Model" />
+</div>
+
+@section Scripts {
+<script>
+    function copyToClipboard(elementId) {
+        const txt = document.getElementById(elementId)?.innerText;
+        if (!txt) return;
+        navigator.clipboard.writeText(txt).then(() => {
+            const icon = document.querySelector('#' + elementId + ' ~ .btn-copy i, #' + elementId + ' + .btn-copy i');
+            if (icon) {
+                const orig = icon.className;
+                icon.className = 'fas fa-check';
+                icon.style.color = 'var(--success)';
+                setTimeout(() => { icon.className = orig; icon.style.color = ''; }, 2000);
+            }
+        });
+    }
+
+    document.addEventListener('DOMContentLoaded', function () {
+        document.getElementById('detailsWrapper').addEventListener('submit', async function (e) {
+            if (e.target?.classList.contains('ajax-action-form')) {
+                e.preventDefault();
+                const form = e.target;
+                const btn  = form.querySelector('button[type="submit"]');
+                const orig = btn.innerHTML;
+
+                btn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Processing…';
+                btn.disabled = true;
+
+                try {
+                    const res = await fetch(form.getAttribute('action'), {
+                        method: 'POST',
+                        body: new FormData(form),
+                        headers: { 'X-Requested-With': 'XMLHttpRequest' }
+                    });
+
+                    if (res.ok) {
+                        document.getElementById('detailsWrapper').innerHTML = await res.text();
+                        showToast('Action processed successfully!', 'success');
+                    } else {
+                        throw new Error();
+                    }
+                } catch {
+                    alert('Network/Server update failed. Please try again.');
+                    btn.innerHTML = orig;
+                    btn.disabled = false;
+                }
+            }
+        });
+    });
+
+    function showToast(msg, type) {
+        const el  = document.getElementById('saasToast');
+        const txt = document.getElementById('saasToastMessage');
+        if (el && txt) {
+            txt.innerHTML = '<i class="fas fa-check-circle me-2"></i>' + msg;
+            try { new bootstrap.Toast(el).show(); } catch(e) {}
+        }
+    }
+</script>
+}

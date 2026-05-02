@@ -1,0 +1,260 @@
+@{
+    Layout = "_AppLayout";
+    ViewData["Title"] = "Order Entry";
+}
+
+@Html.AntiForgeryToken()
+
+<div class="page-header">
+    <div class="breadcrumb-biz"><i class="fa-solid fa-house"></i><span class="sep">/</span><span>Order Entry</span></div>
+    <h1><span>New</span> Sales Order</h1>
+    <p>Create a new customer order and update inventory automatically</p>
+</div>
+
+<div style="display:grid; grid-template-columns:1fr 320px; gap:20px; align-items:start;">
+
+    <div style="display:flex; flex-direction:column; gap:20px;">
+
+        <div class="panel">
+            <div class="panel-header">
+                <div class="panel-title"><i class="fa-solid fa-user panel-icon"></i> Order Details</div>
+            </div>
+            <div class="panel-body">
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px;">
+                    <div>
+                        <label class="form-biz-label">Select Customer <span style="color:var(--danger);">*</span></label>
+                        <select class="form-biz-control" id="customerSelect">
+                            <option value="">— Choose Customer —</option>
+                            
+                            @if (ViewBag.Customers != null)
+                            {
+                                foreach (var customer in ViewBag.Customers)
+                                {
+                                    <option value="@customer.CustomerId">@customer.CustomerName</option>
+                                }
+                            }
+                        </select>
+                    </div>
+                    <div>
+                        <label class="form-biz-label">Order Date</label>
+                        <input type="date" class="form-biz-control" value="@DateTime.Now.ToString("yyyy-MM-dd")" readonly />
+                    </div>
+                    <div style="grid-column:span 2;">
+                        <label class="form-biz-label">Order Notes (optional)</label>
+                        <textarea class="form-biz-control" rows="2" placeholder="Special instructions, delivery notes..."></textarea>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="panel">
+            <div class="panel-header">
+                <div class="panel-title"><i class="fa-solid fa-box panel-icon"></i> Order Items</div>
+                <button type="button" class="btn-action" id="add-line-btn">
+                    <i class="fa-solid fa-circle-plus"></i> Add Item
+                </button>
+            </div>
+            <div class="panel-body">
+                <div style="display:grid; grid-template-columns:1fr 100px 120px 120px 44px; gap:12px; margin-bottom:12px; padding:0 4px;">
+                    <span style="font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:0.8px; color:var(--text-muted);">Product</span>
+                    <span style="font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:0.8px; color:var(--text-muted);">Qty</span>
+                    <span style="font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:0.8px; color:var(--text-muted);">Unit Price (₹)</span>
+                    <span style="font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:0.8px; color:var(--text-muted);">Line Total (₹)</span>
+                    <span></span>
+                </div>
+
+                <div id="order-lines">
+                    <div class="order-line" style="display:grid; grid-template-columns:1fr 100px 120px 120px 44px; gap:12px; align-items:center; margin-bottom:12px;">
+                        <select name="Items[0].ProductId" class="form-biz-control product-select product-sel" required>
+                            <option value="">Select Product</option>
+                        </select>
+                        <input type="number" name="Items[0].Quantity" class="form-biz-control" placeholder="1" min="1" required />
+                        <input type="number" name="Items[0].UnitPrice" class="form-biz-control" placeholder="0.00" step="0.01" readonly />
+                        <input type="number" name="Items[0].LineTotal" class="form-biz-control" placeholder="0.00" readonly />
+                        <button type="button" class="btn-biz-danger remove-line" style="width:36px; height:36px; padding:0; justify-content:center; border-radius:10px;">
+                            <i class="fa-solid fa-trash-can"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <div style="border-top:1px solid rgba(255,255,255,0.08); padding-top:16px; margin-top:4px; display:flex; justify-content:flex-end;">
+                    <div style="text-align:right;">
+                        <div style="font-size:12px; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.8px; margin-bottom:6px;">Order Total</div>
+                        <div id="order-total" style="font-size:28px; font-weight:800; color:var(--accent-lime); letter-spacing:-1px;">₹0</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="d-flex gap-12">
+            <button type="button" class="quick-action-btn" id="submitOrder">
+                <i class="fa-solid fa-paper-plane"></i> Submit Order
+            </button>
+            <button type="button" class="quick-action-btn secondary" id="previewInvoiceBtn">
+                <i class="fa-solid fa-print"></i> Preview Invoice
+            </button>
+            <a href="/Admin/Dashboard" class="quick-action-btn secondary">
+                <i class="fa-solid fa-arrow-left"></i> Cancel
+            </a>
+        </div>
+    </div>
+
+    <div style="display:flex; flex-direction:column; gap:16px;">
+        <div class="panel">
+            <div class="panel-header">
+                <div class="panel-title"><i class="fa-solid fa-receipt panel-icon"></i> Order Summary</div>
+            </div>
+            <div class="panel-body">
+                <div id="summary-customer" style="margin-bottom:16px; padding-bottom:16px; border-bottom:1px solid rgba(255,255,255,0.06);">
+                    <div style="font-size:12px; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.8px; margin-bottom:8px;">Customer</div>
+                    <div id="summary-cust-name" style="font-size:14px; font-weight:600; color:var(--text-primary);">— Not selected —</div>
+                </div>
+                <div style="display:flex; flex-direction:column; gap:10px; font-size:13px;">
+                    <div class="d-flex justify-between">
+                        <span style="color:var(--text-muted);">Items</span>
+                        <span id="summary-items" style="color:var(--text-primary); font-weight:600;">0</span>
+                    </div>
+                    <div class="d-flex justify-between">
+                        <span style="color:var(--text-muted);">Subtotal</span>
+                        <span id="summary-subtotal" style="color:var(--text-primary); font-weight:600;">₹0</span>
+                    </div>
+                    <div class="d-flex justify-between">
+                        <span style="color:var(--text-muted);">GST (5%)</span>
+                        <span id="summary-gst" style="color:var(--text-primary); font-weight:600;">₹0</span>
+                    </div>
+                    <div style="border-top:1px solid rgba(255,255,255,0.08); padding-top:10px;" class="d-flex justify-between">
+                        <span style="font-weight:700; color:var(--text-primary);">Total</span>
+                        <span id="summary-total" style="font-weight:800; color:var(--accent-lime); font-size:16px;">₹0</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div style="background:rgba(126,227,196,0.06); border:1px solid rgba(126,227,196,0.12); border-radius:var(--radius-md); padding:16px 18px;">
+            <div style="font-size:12px; font-weight:700; color:var(--accent-mint); text-transform:uppercase; letter-spacing:0.8px; margin-bottom:8px;">
+                <i class="fa-solid fa-circle-info"></i> How it works
+            </div>
+            <ul style="font-size:12px; color:var(--text-muted); list-style:disc; padding-left:16px; line-height:1.9;">
+                <li>Select customer and add products</li>
+                <li>Stock is auto-reduced on submit</li>
+                <li>Invoice generated automatically</li>
+                <li>Admin gets notification</li>
+            </ul>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        $(function() {
+            
+            const token = $('input[name="__RequestVerificationToken"]').val();
+
+            $('#previewInvoiceBtn').on('click', function() {
+                BizSuite.showToast('Please submit the order to generate an Invoice ID first.', 'warning');
+            });
+
+            BizSuite.loadProductOptions($('.product-sel').first());
+
+            $('#customerSelect').on('change', function () {
+                const name = $(this).find('option:selected').text();
+                $('#summary-cust-name').text($(this).val() ? name : '— Not selected —');
+            });
+
+            const $origRecalc = BizSuite.recalcTotal.bind(BizSuite);
+            BizSuite.recalcTotal = function () {
+                $origRecalc();
+                const subtotal = $('.order-line').toArray().reduce((sum, row) => {
+                    return sum + (parseFloat($(row).find('[name*="LineTotal"]').val()) || 0);
+                }, 0);
+                
+                const gst   = subtotal * 0.05;
+                const total = subtotal + gst;
+                const items = $('.order-line').length;
+        
+                $('#summary-items').text(items);
+                $('#summary-subtotal').text('₹' + subtotal.toLocaleString('en-IN', {maximumFractionDigits:0}));
+                $('#summary-gst').text('₹' + gst.toLocaleString('en-IN', {maximumFractionDigits:0}));
+                $('#summary-total').text('₹' + total.toLocaleString('en-IN', {maximumFractionDigits:0}));
+                $('#order-total').text('₹' + total.toLocaleString('en-IN', {maximumFractionDigits:0}));
+            };
+
+            $('#submitOrder').on('click', function () {
+                const customerId = $('#customerSelect').val();
+        
+                if (!customerId) {
+                    BizSuite.showToast('Please select a customer first', 'warning');
+                    return;
+                }
+
+                const orderItems = [];
+                let hasError = false;
+
+                $('.order-line').each(function() {
+                    const productId = $(this).find('.product-select').val();
+                    const quantity = $(this).find('input[name*="Quantity"]').val();
+                    const unitPrice = $(this).find('input[name*="UnitPrice"]').val();
+
+                    if (!productId || productId === "") {
+                        BizSuite.showToast('Please select a product for all lines.', 'warning');
+                        hasError = true;
+                        return false; 
+                    }
+
+                    if (quantity <= 0) {
+                        BizSuite.showToast('Quantity must be at least 1.', 'warning');
+                        hasError = true;
+                        return false;
+                    }
+
+                    orderItems.push({
+                        ProductId: parseInt(productId),
+                        Quantity: parseInt(quantity),
+                        UnitPrice: parseFloat(unitPrice)
+                    });
+                });
+
+                if (hasError) return;
+
+                if (orderItems.length === 0) {
+                    BizSuite.showToast('Cart is empty. Please add items.', 'warning');
+                    return;
+                }
+
+                const payload = {
+                    CustomerId: parseInt(customerId),
+                    Items: orderItems
+                };
+                
+                const $btn = $(this);
+                $btn.html('<i class="fa-solid fa-spinner fa-spin"></i> Submitting...').prop('disabled', true);
+
+                $.ajax({
+                    url: '/Staff/SubmitOrder',
+                    type: 'POST',
+                    contentType: 'application/json',
+                    headers: { 'RequestVerificationToken': token },
+                    data: JSON.stringify(payload),
+                    success: function (res) {
+                        if (res.success) {
+                            BizSuite.showToast('Order submitted successfully! Invoice #' + res.invoiceId + ' generated.', 'success');
+                            $btn.html('<i class="fa-solid fa-circle-check"></i> Order Submitted!');
+
+                            setTimeout(() => {
+                                window.open('/Admin/PrintInvoice/' + res.invoiceId, '_blank');
+                                window.location.reload();
+                            }, 1500);
+                        } else {
+                            BizSuite.showToast(res.message, 'danger');
+                            $btn.html('<i class="fa-solid fa-paper-plane"></i> Submit Order').prop('disabled', false);
+                        }
+                    },
+                    error: function () {
+                        BizSuite.showToast('Server error. Could not process transaction.', 'danger');
+                        $btn.html('<i class="fa-solid fa-paper-plane"></i> Submit Order').prop('disabled', false);
+                    }
+                });
+            });
+        });
+    </script>
+}

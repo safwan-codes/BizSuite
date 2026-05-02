@@ -1,0 +1,135 @@
+@{
+    var fullName    = Context.Session.GetString("FullName") ?? "User";
+    var role        = Context.Session.GetString("RoleName") ?? "Staff";
+    var initials    = string.Concat(fullName.Split(' ').Take(2).Select(w => w[0]));
+    var path        = Context.Request.Path.Value?.ToLower() ?? "";
+    bool isAdmin    = role == "Admin";
+    bool isManager  = role == "Manager";
+
+    string ActiveIf(string segment) =>
+        path.Contains(segment) ? "active" : "";
+}
+
+<aside class="sidebar" id="sidebar">
+    
+    <div class="sidebar-brand" style="display:flex; justify-content:center; align-items:center; padding: 25px 0; min-height: 80px;">
+        <img src="/images/Bizsuite-Logo.jpg" alt="BizSuite" style="max-height: 55px; max-width: 90%; object-fit: contain; border-radius: 4px; mix-blend-mode: screen; filter: contrast(1.2) brightness(1.1); -webkit-mask-image: radial-gradient(ellipse at center, black 45%, transparent 75%); mask-image: radial-gradient(ellipse at center, black 45%, transparent 75%);" />
+    </div>
+
+    <div class="sidebar-section">
+        @if (isAdmin)
+        {
+            
+            <div class="sidebar-section-label">Main</div>
+            <nav class="sidebar-nav">
+                <a href="/Admin/Dashboard" class="sidebar-nav-item @ActiveIf("/admin/dashboard")">
+                    <i class="fa-solid fa-gauge nav-icon"></i> Dashboard
+                </a>
+                <a href="/Admin/SalesOrders" class="sidebar-nav-item @ActiveIf("/admin/salesorders")">
+                    <i class="fa-solid fa-cart-shopping nav-icon"></i> Sales & Orders
+                </a>
+
+                <a href="/Admin/Products" class="sidebar-nav-item @ActiveIf("/admin/products")">
+                    <i class="fa-solid fa-box nav-icon"></i> Products
+                </a>
+                <a href="/Admin/Customers" class="sidebar-nav-item @ActiveIf("/admin/customers")">
+                    <i class="fa-solid fa-users nav-icon"></i> Customers
+                </a>
+                <a href="/Admin/Invoices" class="sidebar-nav-item @ActiveIf("/admin/invoices")">
+                    <i class="fa-solid fa-file-invoice-dollar nav-icon"></i> Invoices
+                </a>
+                <a href="/Fulfillment/Index" class="sidebar-nav-item @ActiveIf("/fulfillment")">
+                    <i class="fa-solid fa-truck-fast nav-icon"></i> Fulfillment
+                </a>
+            </nav>
+
+            <div class="sidebar-divider"></div>
+            <div class="sidebar-section-label">Team</div>
+            <nav class="sidebar-nav">
+                <a href="/Staff/StaffList" class="sidebar-nav-item @ActiveIf("/staff/stafflist")">
+                    <i class="fa-solid fa-user-tie nav-icon"></i> Staff Management
+                </a>
+            </nav>
+
+            <div class="sidebar-divider"></div>
+            <div class="sidebar-section-label">Analytics</div>
+            <nav class="sidebar-nav">
+                <a href="/Admin/Reports" class="sidebar-nav-item @ActiveIf("/admin/reports")">
+                    <i class="fa-solid fa-chart-bar nav-icon"></i> Reports
+                </a>
+            </nav>
+
+            <div class="sidebar-divider"></div>
+            <div class="sidebar-section-label">System</div>
+            <nav class="sidebar-nav">
+                <a href="/Admin/Settings" class="sidebar-nav-item @ActiveIf("/admin/settings")">
+                    <i class="fa-solid fa-gear nav-icon"></i> Settings
+                </a>
+                <form method="post" action="/Auth/Logout" style="margin:0;padding:0;">
+                    @Html.AntiForgeryToken()
+                    <button type="submit" class="sidebar-nav-item" style="width:100%;background:none;border:none;cursor:pointer;text-align:left;">
+                        <i class="fa-solid fa-right-from-bracket nav-icon"></i> Logout
+                    </button>
+                </form>
+            </nav>
+        }
+        else
+        {
+            
+            <div class="sidebar-section-label">Workspace</div>
+            <nav class="sidebar-nav">
+                <a href="/Staff/Dashboard" class="sidebar-nav-item @ActiveIf("/staff/dashboard")">
+                    <i class="fa-solid fa-gauge nav-icon"></i> Dashboard
+                </a>
+                <a href="/Staff/OrderEntry" class="sidebar-nav-item @ActiveIf("/staff/orderentry")">
+                    <i class="fa-solid fa-circle-plus nav-icon"></i> Order Entry
+                </a>
+                <a href="/Staff/InventoryCheck" class="sidebar-nav-item @ActiveIf("/staff/inventorycheck")">
+                    <i class="fa-solid fa-boxes-stacked nav-icon"></i> Inventory Check
+                </a>
+                <a href="/Fulfillment/Index" class="sidebar-nav-item @ActiveIf("/fulfillment")">
+                    <i class="fa-solid fa-truck-fast nav-icon"></i> Fulfillment
+                </a>
+                @if (isManager)
+                {
+                    <a href="/Staff/StaffList" class="sidebar-nav-item @ActiveIf("/staff/stafflist")">
+                        <i class="fa-solid fa-user-tie nav-icon"></i> Staff Management
+                    </a>
+                }
+            </nav>
+
+            <div class="sidebar-divider"></div>
+            <nav class="sidebar-nav">
+                <form method="post" action="/Auth/Logout" style="margin:0;padding:0;">
+                    @Html.AntiForgeryToken()
+                    <button type="submit" class="sidebar-nav-item" style="width:100%;background:none;border:none;cursor:pointer;text-align:left;">
+                        <i class="fa-solid fa-right-from-bracket nav-icon"></i> Logout
+                    </button>
+                </form>
+            </nav>
+        }
+    </div>
+
+    <div class="sidebar-footer">
+        <div class="sidebar-user" data-dropdown="userDropMenu">
+            <div class="sidebar-user-avatar">@initials</div>
+            <div class="sidebar-user-info">
+                <div class="sidebar-user-name">@fullName</div>
+                <div class="sidebar-user-role">@role</div>
+            </div>
+            <i class="fa-solid fa-chevron-up sidebar-user-chevron"></i>
+        </div>
+        <div class="dropdown-biz" id="userDropMenu" style="bottom:80px; top:auto; left:12px; right:12px;">
+            <a href="/Auth/Profile" class="dropdown-biz-item">
+                <i class="fa-solid fa-user"></i> Profile
+            </a>
+            <div class="dropdown-biz-divider"></div>
+            <form method="post" action="/Auth/Logout" style="margin:0;padding:0;">
+                @Html.AntiForgeryToken()
+                <button type="submit" class="dropdown-biz-item danger" style="width:100%;background:none;border:none;cursor:pointer;text-align:left;">
+                    <i class="fa-solid fa-right-from-bracket"></i> Logout
+                </button>
+            </form>
+        </div>
+    </div>
+</aside>

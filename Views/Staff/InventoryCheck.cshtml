@@ -1,0 +1,158 @@
+@{
+    Layout = "_AppLayout";
+    ViewData["Title"] = "Inventory Check";
+    var products = Model as IEnumerable<BizSuite.Models.Product> ?? new List<BizSuite.Models.Product>();
+}
+
+<div class="page-header">
+    <div class="breadcrumb-biz"><i class="fa-solid fa-house"></i><span class="sep">/</span><span>Inventory Check</span></div>
+    <div class="d-flex align-center justify-between">
+        <div>
+            <h1><span>Inventory</span> Status</h1>
+            <p>Real-time stock levels across all products</p>
+        </div>
+        <div class="d-flex gap-12">
+            <button class="quick-action-btn secondary" id="refreshBtn">
+                <i class="fa-solid fa-rotate"></i> Refresh
+            </button>
+        </div>
+    </div>
+</div>
+
+<div style="display:grid; grid-template-columns:repeat(4,1fr); gap:16px; margin-bottom:24px;">
+    <div class="stat-mini">
+        <div class="stat-mini-value text-lime">@products.Count()</div>
+        <div class="stat-mini-label">Total Products</div>
+    </div>
+    <div class="stat-mini">
+        <div class="stat-mini-value" style="color:var(--success);">@products.Count(p=>p.StockStatus=="Good")</div>
+        <div class="stat-mini-label">In Stock</div>
+    </div>
+    <div class="stat-mini">
+        <div class="stat-mini-value" style="color:var(--warning);">@products.Count(p=>p.StockStatus=="Low")</div>
+        <div class="stat-mini-label">Low Stock</div>
+    </div>
+    <div class="stat-mini">
+        <div class="stat-mini-value" style="color:var(--danger);">@products.Count(p=>p.StockStatus=="Critical")</div>
+        <div class="stat-mini-label">Critical</div>
+    </div>
+</div>
+
+<div class="filter-bar mb-24">
+    <div class="filter-search">
+        <i class="fa-solid fa-magnifying-glass filter-search-icon"></i>
+        <input type="text" class="table-search-input" data-target=".table-biz" placeholder="Search by product or SKU..." />
+    </div>
+    <select class="filter-select" id="statusFilter">
+        <option value="">All Status</option>
+        <option value="Good">In Stock</option>
+        <option value="Low">Low Stock</option>
+        <option value="Critical">Critical</option>
+    </select>
+    <select class="filter-select" data-col="2" data-target=".table-biz">
+        <option value="">All Categories</option>
+        <option>Electronics</option>
+        <option>Accessories</option>
+        <option>Furniture</option>
+        <option>Networking</option>
+    </select>
+</div>
+
+<div class="panel">
+    <div class="panel-header">
+        <div class="panel-title"><i class="fa-solid fa-boxes-stacked panel-icon"></i> Product Stock Status</div>
+        <div class="d-flex align-center gap-12">
+            <div class="d-flex align-center gap-8" style="font-size:12px;">
+                <span style="width:8px; height:8px; border-radius:50%; background:var(--success);"></span>
+                <span style="color:var(--text-muted);">Good</span>
+                <span style="width:8px; height:8px; border-radius:50%; background:var(--warning); margin-left:8px;"></span>
+                <span style="color:var(--text-muted);">Low</span>
+                <span style="width:8px; height:8px; border-radius:50%; background:var(--danger); margin-left:8px;"></span>
+                <span style="color:var(--text-muted);">Critical</span>
+            </div>
+        </div>
+    </div>
+    <div style="overflow-x:auto;">
+        <table class="table-biz">
+            <thead>
+                <tr>
+                    <th>Product</th>
+                    <th>Category</th>
+                    <th>SKU</th>
+                    <th>Stock</th>
+                    <th>Min Threshold</th>
+                    <th>Level</th>
+                    <th>Status</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var p in products)
+                {
+                    string status   = p.StockStatus ?? "Good";
+                    int    stock    = p.StockQuantity;
+                    int    thresh   = p.LowStockThreshold;
+                    int    pct      = Math.Min(100, (int)Math.Round((double)stock / Math.Max(thresh * 3, 1) * 100));
+                    string barClass = status == "Critical" ? "critical" : status == "Low" ? "low" : "good";
+                    string badgeCls = status == "Critical" ? "danger"   : status == "Low" ? "warning" : "success";
+                    string icon     = status == "Critical" ? "fa-triangle-exclamation" : status == "Low" ? "fa-exclamation-circle" : "fa-circle-check";
+
+                    <tr data-status="@status">
+                        <td>
+                            <div class="d-flex align-center gap-12">
+                                <div style="width:36px; height:36px; border-radius:10px; background:@(status=="Critical"?"rgba(248,113,113,0.12)":status=="Low"?"rgba(251,191,36,0.12)":"rgba(126,227,196,0.1)"); display:flex; align-items:center; justify-content:center; color:@(status=="Critical"?"var(--danger)":status=="Low"?"var(--warning)":"var(--accent-mint)"); font-size:15px; flex-shrink:0;">
+                                    <i class="fa-solid fa-box"></i>
+                                </div>
+                                <div>
+                                    <div style="font-weight:600; color:var(--text-primary); font-size:13px;">@p.ProductName</div>
+                                </div>
+                            </div>
+                        </td>
+                        <td><span class="badge-biz mint">@(p.CategoryName ?? "General")</span></td>
+                        <td><code style="font-size:11px; color:var(--text-muted); background:rgba(255,255,255,0.04); padding:3px 8px; border-radius:6px;">@p.SKU</code></td>
+                        <td>
+                            <span style="font-size:18px; font-weight:800; color:@(status=="Critical"?"var(--danger)":status=="Low"?"var(--warning)":"var(--text-primary)");">@stock</span>
+                            <span style="font-size:11px; color:var(--text-muted);"> units</span>
+                        </td>
+                        <td style="color:var(--text-muted);">min @thresh</td>
+                        <td>
+                            <div style="display:flex; align-items:center; gap:10px;">
+                                <div class="stock-bar" style="max-width:100px;">
+                                    <div class="stock-bar-fill @barClass" style="width:@pct%"></div>
+                                </div>
+                                <span style="font-size:11px; color:var(--text-muted);">@pct%</span>
+                            </div>
+                        </td>
+                        <td>
+                            <span class="badge-biz @badgeCls">
+                                <i class="fa-solid @icon" style="font-size:9px;"></i> @status
+                            </span>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
+
+@section Scripts {
+<script>
+$(function () {
+    
+    $('#statusFilter').on('change', function () {
+        const val = $(this).val();
+        $('tr[data-status]').each(function () {
+            $(this).toggle(!val || $(this).data('status') === val);
+        });
+    });
+
+    $('#refreshBtn').on('click', function () {
+        const $btn = $(this);
+        $btn.html('<i class="fa-solid fa-spinner fa-spin"></i> Refreshing...');
+        setTimeout(() => {
+            $btn.html('<i class="fa-solid fa-rotate"></i> Refresh');
+            BizSuite.showToast('Inventory data refreshed!', 'success');
+        }, 1000);
+    });
+});
+</script>
+}

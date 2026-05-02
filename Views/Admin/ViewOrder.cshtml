@@ -1,0 +1,124 @@
+@model BizSuite.Models.OrderDetailViewModel
+@{
+    Layout = "_AppLayout";
+    ViewData["Title"] = $"Order #{Model.Header.OrderId}";
+}
+
+<div class="page-header">
+    <div class="breadcrumb-biz">
+        <a href="/Admin/Dashboard" style="color:inherit;"><i class="fa-solid fa-house"></i></a>
+        <span class="sep">/</span>
+        <a href="/Admin/SalesOrders" style="color:inherit;">Sales & Orders</a>
+        <span class="sep">/</span>
+        <span>Order Details</span>
+    </div>
+    <div class="d-flex align-center justify-between">
+        <div>
+            <h1>Order <span>#@Model.Header.OrderId</span></h1>
+            <p>Managed for <strong>@Model.Header.Customer</strong> on @Model.Header.OrderDate</p>
+        </div>
+        <div class="d-flex gap-12">
+            <a href="/Admin/SalesOrders" class="btn-biz-secondary">
+                <i class="fa-solid fa-arrow-left"></i> Back to Orders
+            </a>
+            @if (Model.Invoice != null)
+            {
+                <a href="/Admin/PrintInvoice/@Model.Invoice.InvoiceId" class="btn-biz-outline" target="_blank">
+                    <i class="fa-solid fa-print"></i> Print Invoice
+                </a>
+            }
+        </div>
+    </div>
+</div>
+
+<div style="display:grid; grid-template-columns:2fr 1fr; gap:24px; margin-bottom:24px;">
+    <div class="panel">
+        <div class="panel-header">
+            <div class="panel-title">
+                <i class="fa-solid fa-list panel-icon"></i> Order Items
+            </div>
+        </div>
+        <div class="panel-body" style="padding:0;">
+            <table class="table-biz">
+                <thead>
+                    <tr>
+                        <th>Product</th>
+                        <th style="text-align:right;">Quantity</th>
+                        <th style="text-align:right;">Unit Price</th>
+                        <th style="text-align:right;">Line Total</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var item in Model.Items)
+                    {
+                        <tr>
+                            <td style="font-weight:600; color:var(--text-primary);">@item.ProductName</td>
+                            <td style="text-align:right;">@item.Quantity</td>
+                            <td style="text-align:right;">₹@item.UnitPrice.ToString("N2")</td>
+                            <td style="text-align:right; font-weight:700; color:var(--accent-lime);">₹@item.LineTotal.ToString("N2")</td>
+                        </tr>
+                    }
+                </tbody>
+                <tfoot>
+                    <tr>
+                        <td colspan="3" style="text-align:right; font-weight:600;">Total Amount:</td>
+                        <td style="text-align:right; font-weight:800; color:var(--accent-lime); font-size:16px;">₹@Model.Header.Total.ToString("N2")</td>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+    </div>
+
+    <div style="display:flex; flex-direction:column; gap:24px;">
+        <div class="panel">
+            <div class="panel-header">
+                <div class="panel-title">
+                    <i class="fa-solid fa-circle-info panel-icon"></i> Order Summary
+                </div>
+            </div>
+            <div class="panel-body">
+                <div style="margin-bottom:16px;">
+                    <div style="font-size:12px; color:var(--text-muted); text-transform:uppercase; letter-spacing:1px; margin-bottom:4px;">Status</div>
+                    <div>
+                        @{
+                            var badgeCls = Model.Header.Status == "Delivered" ? "success" : (Model.Header.Status == "Confirmed" ? "lime" : "warning");
+                        }
+                        <span class="badge-biz @badgeCls">@Model.Header.Status</span>
+                    </div>
+                </div>
+                <div style="margin-bottom:16px;">
+                    <div style="font-size:12px; color:var(--text-muted); text-transform:uppercase; letter-spacing:1px; margin-bottom:4px;">Date</div>
+                    <div style="font-weight:500;">@Model.Header.OrderDate</div>
+                </div>
+                <div>
+                    <div style="font-size:12px; color:var(--text-muted); text-transform:uppercase; letter-spacing:1px; margin-bottom:4px;">Items Count</div>
+                    <div style="font-weight:500;">@Model.Header.Items items</div>
+                </div>
+            </div>
+        </div>
+
+        @if (Model.Invoice != null)
+        {
+            <div class="panel">
+                <div class="panel-header">
+                    <div class="panel-title">
+                        <i class="fa-solid fa-file-invoice panel-icon" style="color:var(--info);"></i> Invoice Details
+                    </div>
+                </div>
+                <div class="panel-body">
+                    <div style="margin-bottom:16px;">
+                        <div style="font-size:12px; color:var(--text-muted); text-transform:uppercase; letter-spacing:1px; margin-bottom:4px;">Invoice ID</div>
+                        <div style="font-weight:600; font-family:monospace; color:var(--info);">#@Model.Invoice.InvoiceId</div>
+                    </div>
+                    <div>
+                        <div style="font-size:12px; color:var(--text-muted); text-transform:uppercase; letter-spacing:1px; margin-bottom:4px;">Payment Status</div>
+                        @{
+                            var invBadge = Model.Invoice.Status == "Paid" ? "success" : "warning";
+                        }
+                        <span class="badge-biz @invBadge">@Model.Invoice.Status</span>
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+</div>

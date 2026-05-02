@@ -1,0 +1,249 @@
+@{
+    var fullName = Context.Session.GetString("FullName") ?? "User";
+    var role     = Context.Session.GetString("RoleName") ?? "Staff";
+    var profileImage = Context.Session.GetString("ProfileImage");
+
+    var nameParts = fullName.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+    var initials = nameParts.Length > 1 
+        ? $"{nameParts[0][0]}{nameParts[1][0]}" 
+        : (nameParts.Length == 1 ? $"{nameParts[0][0]}" : "U");
+    initials = initials.ToUpper();
+
+    var hour     = DateTime.Now.Hour;
+    var greeting = hour < 12 ? "Good morning" : hour < 17 ? "Good afternoon" : "Good evening";
+}
+
+<header class="topbar">
+    <button class="mobile-menu-btn" id="mobileMenuBtn">
+        <i class="fa-solid fa-bars"></i>
+    </button>
+
+    <div class="topbar-left">
+        <div class="topbar-greeting">
+            @greeting, <strong>@fullName</strong> 
+        </div>
+    </div>
+
+    <div class="topbar-search d-none d-md-flex">
+        <i class="fa-solid fa-magnifying-glass topbar-search-icon"></i>
+        <input type="text" placeholder="Search anything..." id="globalSearch" />
+    </div>
+
+    <div class="topbar-actions">
+        <div class="topbar-icon-btn" id="notifBtn" style="position:relative">
+            <i class="fa-solid fa-bell"></i>
+            <span class="badge" id="notifBadge" style="display:none;"></span>
+            <div class="dropdown-biz" id="notifDrop" style="top:calc(100% + 10px); right:0; left:auto; width:320px; padding:12px 0;">
+                <div style="padding:0 16px 8px; border-bottom:1px solid rgba(255,255,255,0.05); font-weight:700; font-size:13px; color:var(--accent-mint); display:flex; justify-content:space-between; align-items:center;">
+                    Notifications
+                    <span style="font-size:11px; font-weight:400; color:var(--text-muted); cursor:pointer;" onclick="markAllRead(event)">Mark all read</span>
+                </div>
+                <div id="notifList" style="max-height:300px; overflow-y:auto;">
+                    <div style="padding:20px; text-align:center; color:var(--text-muted); font-size:12px;">Loading...</div>
+                </div>
+                <div style="padding:8px 16px 0; border-top:1px solid rgba(255,255,255,0.05); text-align:center;">
+                    <a href="/Admin/AuditLogs" style="font-size:12px; color:var(--accent-lime); text-decoration:none;">View all activity</a>
+                </div>
+            </div>
+        </div>
+
+
+
+        <div class="topbar-user-btn" data-dropdown="topbarUserDrop" style="position:relative">
+            
+            @if (!string.IsNullOrEmpty(profileImage))
+            {
+                <img src="@profileImage" alt="Avatar" class="topbar-user-avatar" style="object-fit: cover; border: none; padding: 0;" />
+            }
+            else
+            {
+                <div class="topbar-user-avatar">@initials</div>
+            }
+
+            <span class="topbar-user-name">@fullName</span>
+            <i class="fa-solid fa-chevron-down topbar-user-chevron"></i>
+
+            <div class="dropdown-biz" id="topbarUserDrop" style="top:calc(100% + 10px); right:0; left:auto; min-width:200px;">
+                <a href="/Auth/Profile" class="dropdown-biz-item">
+                    <i class="fa-solid fa-user"></i> My Profile
+                </a>
+                @if (role == "Admin")
+                {
+                    <a href="/Admin/Settings" class="dropdown-biz-item">
+                        <i class="fa-solid fa-gear"></i> Settings
+                    </a>
+                }
+                <div class="dropdown-biz-divider"></div>
+                <form method="post" action="/Auth/Logout" style="margin:0;padding:0;">
+                    @Html.AntiForgeryToken()
+                    <button type="submit" class="dropdown-biz-item danger" style="width:100%;background:none;border:none;cursor:pointer;text-align:left;">
+                        <i class="fa-solid fa-right-from-bracket"></i> Logout
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</header>
+
+<script>
+    
+    document.getElementById('mobileMenuBtn').addEventListener('click', function () {
+        document.getElementById('sidebar').classList.toggle('open');
+        document.querySelector('.sidebar-overlay').classList.toggle('show');
+    });
+
+    document.addEventListener('DOMContentLoaded', function () {
+        var $notifBadge = $('#notifBadge');
+        var $notifList = $('#notifList');
+        var $notifBtn = $('#notifBtn');
+        var $notifDrop = $('#notifDrop');
+
+        function fetchNotifications() {
+            $.get('/Admin/GetNotifications', function(data) {
+                $notifList.empty();
+                if (data.length === 0) {
+                    $notifBadge.hide();
+                    $notifList.append('<div style="padding:40px 20px; text-align:center; color:var(--text-muted); font-size:13px;"><i class="fa-regular fa-bell-slash" style="display:block; font-size:24px; margin-bottom:12px; opacity:0.3;"></i>All caught up!</div>');
+                } else {
+                    $notifBadge.text(data.length).show();
+                    data.forEach(function(n) {
+                        var icon = n.type === 'warning' ? 'triangle-exclamation' : n.type === 'danger' ? 'circle-xmark' : 'circle-info';
+                        var color = n.type === 'warning' ? 'var(--warning)' : n.type === 'danger' ? 'var(--danger)' : 'var(--accent-lime)';
+                        
+                        var item = $('<div class="notif-item" onclick="markRead(event, '+n.id+')">' + 
+                            '<i class="fa-solid fa-'+icon+'" style="color:'+color+'; flex-shrink:0; margin-top:2px;"></i>' +
+                            '<div>' +
+                                '<div style="font-weight:600; font-size:13px; color:var(--text-primary);">'+n.title+'</div>' +
+                                '<div style="font-size:12px; color:var(--text-secondary); line-height:1.4;">'+n.message+'</div>' +
+                                '<div style="font-size:11px; color:var(--text-muted); margin-top:4px;">'+n.time+'</div>' +
+                            '</div>' +
+                        '</div>');
+                        $notifList.append(item);
+                    });
+                }
+            });
+        }
+
+        $notifBtn.on('click', function(e) {
+            e.stopPropagation();
+            $notifDrop.toggleClass('show');
+            $('#topbarUserDrop').removeClass('show');
+            if ($notifDrop.hasClass('show')) fetchNotifications();
+        });
+
+        window.markRead = function(e, id) {
+            if(e) e.stopPropagation();
+            $.post('/Admin/MarkNotificationRead', { id: id }, function(res) {
+                if (res.success) fetchNotifications();
+            });
+        };
+
+        window.markAllRead = function(e) {
+            if(e) e.stopPropagation();
+            $.post('/Admin/MarkNotificationRead', { id: 0 }, function() { fetchNotifications(); });
+        };
+
+        setInterval(fetchNotifications, 60000);
+        fetchNotifications();
+
+        $(document).on('click', function() {
+            $notifDrop.removeClass('show');
+        });
+
+        document.getElementById('globalSearch').addEventListener('keypress', function (e) {
+            if (e.key === 'Enter') {
+                var q = this.value.trim();
+                if (q.length > 0) {
+                    window.location.href = '/Admin/Search?q=' + encodeURIComponent(q);
+                }
+            }
+        });
+    });
+</script>
+
+<style>
+
+.notif-item {
+    padding: 12px 16px;
+    display: flex;
+    gap: 12px;
+    cursor: pointer;
+    border-bottom: 1px solid rgba(255,255,255,0.03);
+    transition: background 0.2s ease;
+}
+.notif-item:hover {
+    background: rgba(255,255,255,0.04);
+}
+.notif-item:last-child {
+    border-bottom: none;
+}
+.badge {
+    position: absolute;
+    top: 6px;
+    right: 6px;
+    background: var(--danger);
+    color: white;
+    font-size: 10px;
+    font-weight: 700;
+    min-width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 2px solid #143d34;
+}
+
+.dropdown-biz {
+    position: absolute;
+    background: #143d34;
+    border: 1px solid rgba(126,227,196,0.15);
+    border-radius: 8px;
+    padding: 8px 0;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+    z-index: 1000;
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(-10px);
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.dropdown-biz.show {
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(0);
+}
+.dropdown-biz-item {
+    padding: 10px 16px;
+    color: var(--text-primary);
+    font-size: 13.5px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    text-decoration: none;
+    transition: background 0.15s ease;
+}
+.dropdown-biz-item:hover {
+    background: rgba(126,227,196,0.08);
+}
+.dropdown-biz-item i {
+    width: 16px;
+    text-align: center;
+    color: var(--text-secondary);
+}
+.dropdown-biz-item:hover i {
+    color: var(--accent-mint);
+}
+.dropdown-biz-item.danger:hover {
+    background: rgba(239,68,68,0.1);
+    color: #f87171;
+}
+.dropdown-biz-item.danger:hover i {
+    color: #f87171;
+}
+.dropdown-biz-divider {
+    height: 1px;
+    background: rgba(255,255,255,0.05);
+    margin: 6px 0;
+}
+</style>

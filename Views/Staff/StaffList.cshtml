@@ -1,0 +1,152 @@
+@using BizSuite.Models.Staff
+@model IEnumerable<StaffMember>
+@{
+    Layout = "_AppLayout";
+    ViewData["Title"] = "Staff Management";
+    var list = Model?.ToList() ?? new List<StaffMember>();
+}
+
+<div class="page-header">
+    <div class="breadcrumb-biz">
+        <i class="fa-solid fa-house"></i><span class="sep">/</span><span>Staff Management</span>
+    </div>
+    <div class="d-flex align-center justify-between">
+        <div>
+            <h1><span>Staff</span> Management</h1>
+            <p>Add, edit, and manage your team members</p>
+        </div>
+        <a href="/Staff/CreateStaff" class="quick-action-btn">
+            <i class="fa-solid fa-user-plus"></i> Add Staff
+        </a>
+    </div>
+</div>
+
+@if (TempData["Success"] != null)
+{
+    <div class="alert-biz success mb-16"><i class="fa-solid fa-circle-check"></i> @TempData["Success"]</div>
+}
+@if (TempData["Error"] != null)
+{
+    <div class="alert-biz danger mb-16"><i class="fa-solid fa-triangle-exclamation"></i> @TempData["Error"]</div>
+}
+
+<div style="display:grid; grid-template-columns:repeat(4,1fr); gap:16px; margin-bottom:24px;">
+    <div class="stat-mini">
+        <div class="stat-mini-value text-lime">@list.Count</div>
+        <div class="stat-mini-label">Total Staff</div>
+    </div>
+    <div class="stat-mini">
+        <div class="stat-mini-value" style="color:var(--accent-mint);">@list.Count(s => s.IsActive)</div>
+        <div class="stat-mini-label">Active</div>
+    </div>
+    <div class="stat-mini">
+        <div class="stat-mini-value" style="color:var(--danger);">@list.Count(s => !s.IsActive)</div>
+        <div class="stat-mini-label">Inactive</div>
+    </div>
+    <div class="stat-mini">
+        <div class="stat-mini-value" style="color:var(--warning);">@list.Select(s => s.Department).Distinct().Count()</div>
+        <div class="stat-mini-label">Departments</div>
+    </div>
+</div>
+
+<div class="filter-bar mb-24">
+    <div class="filter-search">
+        <i class="fa-solid fa-magnifying-glass filter-search-icon"></i>
+        <input type="text" class="table-search-input" data-target=".table-biz" placeholder="Search staff..." />
+    </div>
+    <select class="filter-select" id="statusFilter">
+        <option value="">All Status</option>
+        <option value="active">Active</option>
+        <option value="inactive">Inactive</option>
+    </select>
+</div>
+
+<div class="panel">
+    <div class="panel-header">
+        <div class="panel-title">
+            <i class="fa-solid fa-users panel-icon"></i> Team Members
+        </div>
+    </div>
+    <div style="overflow-x:auto;">
+        <table class="table-biz">
+            <thead>
+                <tr>
+                    <th>Name</th>
+                    <th>Email</th>
+                    <th>Phone</th>
+                    <th>Role</th>
+                    <th>Department</th>
+                    <th>Joined</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var s in list)
+                {
+                    <tr>
+                        <td>
+                            <div class="d-flex align-center gap-12">
+                                <div style="width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,var(--accent-lime),var(--accent-mint));display:flex;align-items:center;justify-content:center;font-weight:700;font-size:14px;color:#000;flex-shrink:0;">
+                                    @s.FullName[0]
+                                </div>
+                                <div>
+                                    <div style="font-weight:600;color:var(--text-primary);font-size:13px;">@s.FullName</div>
+                                    <div style="font-size:11px;color:var(--text-muted);">ID #@s.StaffId</div>
+                                </div>
+                            </div>
+                        </td>
+                        <td style="color:var(--text-secondary);font-size:13px;">@s.Email</td>
+                        <td style="font-size:13px;">@s.Phone</td>
+                        <td><span class="badge-biz mint">@s.Role</span></td>
+                        <td style="font-size:13px;">@s.Department</td>
+                        <td style="font-size:12px;color:var(--text-muted);">@s.JoinDate</td>
+                        <td>
+                            @if (s.IsActive)
+                            {
+                                <span class="badge-biz success"><span class="badge-dot"></span>Active</span>
+                            }
+                            else
+                            {
+                                <span class="badge-biz danger"><span class="badge-dot"></span>Inactive</span>
+                            }
+                        </td>
+                        <td>
+                            <div class="d-flex gap-8">
+                                <a href="/Staff/EditStaff/@s.StaffId" class="btn-action" title="Edit">
+                                    <i class="fa-solid fa-pen"></i>
+                                </a>
+                                <form method="post" action="/Staff/DeleteStaff" onsubmit="return confirm('Remove @s.FullName from team?');" style="margin:0;">
+                                    @Html.AntiForgeryToken()
+                                    <input type="hidden" name="staffId" value="@s.StaffId" />
+                                    <button type="submit" class="btn-action" style="background:rgba(239,68,68,0.1);color:var(--danger);border-color:rgba(239,68,68,0.2);" title="Delete">
+                                        <i class="fa-solid fa-trash"></i>
+                                    </button>
+                                </form>
+                            </div>
+                        </td>
+                    </tr>
+                }
+                @if (!list.Any())
+                {
+                    <tr><td colspan="8" style="text-align:center;padding:40px;color:var(--text-muted);">No staff members found. <a href="/Staff/CreateStaff">Add one now.</a></td></tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
+
+@section Scripts {
+<script>
+$(function () {
+    $('#statusFilter').on('change', function () {
+        const val = $(this).val();
+        $('.table-biz tbody tr').each(function () {
+            const badge = $(this).find('.badge-biz').last().text().toLowerCase();
+            if (!val) { $(this).show(); return; }
+            $(this).toggle(badge.includes(val));
+        });
+    });
+});
+</script>
+}

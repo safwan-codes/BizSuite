@@ -1,0 +1,216 @@
+@model BizSuite.Models.OrderDetailViewModel
+@{
+    Layout = null;
+}
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Packing Slip - #@Model.Header.OrderId</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+    <style>
+        @@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap');
+        
+        :root {
+            --accent-lime: #C9F76F;
+            --accent-mint: #7EE3C4;
+            --text-dark: #143D34;
+            --bg-dark: #0A1F1B;
+        }
+
+        body {
+            font-family: 'Outfit', sans-serif;
+            margin: 0;
+            padding: 40px;
+            background: #fff;
+            color: #333;
+        }
+
+        .slip-container {
+            max-width: 800px;
+            margin: 0 auto;
+            border: 1px solid #eee;
+            padding: 40px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.05);
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 2px solid var(--accent-lime);
+            padding-bottom: 20px;
+            margin-bottom: 30px;
+        }
+
+        .logo {
+            font-size: 24px;
+            font-weight: 800;
+            color: var(--text-dark);
+            letter-spacing: -0.5px;
+        }
+
+        .logo span { color: #888; font-weight: 400; }
+
+        .title {
+            text-align: right;
+        }
+
+        .title h1 {
+            margin: 0;
+            font-size: 20px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            color: #888;
+        }
+
+        .meta-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 40px;
+            margin-bottom: 40px;
+        }
+
+        .meta-box h3 {
+            font-size: 14px;
+            color: #888;
+            text-transform: uppercase;
+            margin-bottom: 8px;
+        }
+
+        .meta-box p {
+            margin: 0;
+            font-weight: 600;
+            font-size: 16px;
+        }
+
+        .items-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 40px;
+        }
+
+        .items-table th {
+            text-align: left;
+            padding: 12px;
+            background: #f9f9f9;
+            color: #888;
+            font-size: 13px;
+            text-transform: uppercase;
+        }
+
+        .items-table td {
+            padding: 12px;
+            border-bottom: 1px solid #eee;
+            font-size: 15px;
+        }
+
+        .footer {
+            margin-top: 60px;
+            padding-top: 20px;
+            border-top: 1px solid #eee;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+        }
+
+        .signature {
+            width: 200px;
+            border-top: 1px solid #333;
+            text-align: center;
+            font-size: 12px;
+            padding-top: 8px;
+        }
+
+        @@media print {
+            body { padding: 0; }
+            .slip-container { border: none; box-shadow: none; width: 100%; max-width: 100%; }
+            .no-print { display: none; }
+        }
+
+        .print-btn {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: var(--text-dark);
+            color: #fff;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 30px;
+            font-weight: 600;
+            cursor: pointer;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+    </style>
+</head>
+<body>
+
+    <button class="print-btn no-print" onclick="window.print()">
+        <i class="fa-solid fa-print"></i> Print Packing Slip
+    </button>
+
+    <div class="slip-container">
+        <div class="header">
+            <div class="logo">BIZSUITE<span>ERP</span></div>
+            <div class="title">
+                <h1>Packing Slip</h1>
+            </div>
+        </div>
+
+        <div class="meta-grid">
+            <div class="meta-box">
+                <h3>Ship To</h3>
+                <p>@Model.Header.Customer</p>
+                <p style="font-weight: 400; font-size: 13px; color: #666; margin-top: 4px;">Verified Customer Portfolio</p>
+            </div>
+            <div class="meta-box" style="text-align: right;">
+                <h3>Order Details</h3>
+                <p>Order ID: #@Model.Header.OrderId</p>
+                <p>Date: @Model.Header.OrderDate</p>
+            </div>
+        </div>
+
+        <table class="items-table">
+            <thead>
+                <tr>
+                    <th>Item Description</th>
+                    <th style="text-align: center;">Quantity</th>
+                    <th style="text-align: right;">Status</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var item in Model.Items)
+                {
+                    <tr>
+                        <td style="font-weight: 600;">@item.ProductName</td>
+                        <td style="text-align: center;">@item.Quantity</td>
+                        <td style="text-align: right; color: @(Model.Header.FulfillmentStatus == "Delivered" ? "#4CAF50" : "#FF9800"); font-size: 12px;">
+                            @Model.Header.FulfillmentStatus
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+
+        <div style="background: #fef9e7; padding: 15px; border-radius: 8px; font-size: 13px; line-height: 1.6; color: #856404; margin-bottom: 40px;">
+            <i class="fa-solid fa-circle-info" style="margin-right: 6px;"></i>
+            <strong>Warehouse Instructions:</strong> Please verify item counts against the digital inventory system before sealing the package. Use QR codes on labels for real-time tracking updates.
+        </div>
+
+        <div class="footer">
+            <div>
+                <p style="font-size: 12px; color: #999;">Generated by BizSuite SaaS Fulfillment Engine</p>
+            </div>
+            <div class="signature">
+                Warehouse Manager Signature
+            </div>
+        </div>
+    </div>
+
+</body>
+</html>

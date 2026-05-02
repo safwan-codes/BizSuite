@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"] — BizSuite</title>
+    <meta name="description" content="BizSuite — SaaS ERP Dashboard" />
+    <meta name="theme-color" content="#0b0f19" />
+
+    <link rel="icon" type="image/x-icon" href="~/favicon.ico?v=@DateTime.Now.Ticks" />
+    <link rel="apple-touch-icon" href="~/favicon.ico?v=@DateTime.Now.Ticks" />
+
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+    
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    
+    <link rel="stylesheet" href="~/css/bizsuite.css" />
+
+    @RenderSection("Styles", required: false)
+</head>
+<body>
+
+    <div class="app-wrapper">
+        
+        @await Html.PartialAsync("_Sidebar")
+
+        <div class="sidebar-overlay"></div>
+
+        <div style="flex:1; display:flex; flex-direction:column;">
+            
+            @await Html.PartialAsync("_Topbar")
+
+            <main class="main-content">
+                @RenderBody()
+            </main>
+        </div>
+    </div>
+
+    <div id="toast-container"></div>
+
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+    
+    <script src="~/js/bizsuite.js"></script>
+
+    <div class="toast-container position-fixed bottom-0 end-0 p-3" style="z-index: 9999">
+        <div id="saasToast" class="toast align-items-center text-white bg-success border-0" role="alert" aria-live="assertive" aria-atomic="true">
+            <div class="d-flex">
+                <div class="toast-body" id="saasToastMessage">
+                </div>
+                <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+            </div>
+        </div>
+    </div>
+
+    @RenderSection("Scripts", required: false)
+</body>
+</html>
