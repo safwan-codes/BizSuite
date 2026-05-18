@@ -51,7 +51,9 @@ namespace BizSuite.Services
                     };
                     mailMessage.To.Add(email);
 
-                    await client.SendMailAsync(mailMessage);
+                    // Note: SmtpClient.Timeout only applies to the synchronous Send() method!
+                    // SendMailAsync ignores the timeout and will hang forever if port is blocked.
+                    await Task.Run(() => client.Send(mailMessage));
                     _logger.LogInformation("Email sent to {Email} successfully.", email);
                 }
             }
