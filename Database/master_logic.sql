@@ -5,7 +5,7 @@
 --           Performance Indexes, and Row-Level Security Policies.
 -- ============================================================
 
-USE Bizsuite;
+USE [db_ac8d7f_safwan7424];
 GO
 
 -- ── User-Defined Table Types ──────────────────────────────────────────────────
@@ -414,9 +414,9 @@ BEGIN
             UnitPrice DECIMAL(18,2) '$.UnitPrice'
         );
 
-        -- Calculate total with 18% GST
+        -- Calculate total with 5% GST
         DECLARE @Total DECIMAL(18,2);
-        SELECT @Total = ISNULL(SUM(LineTotal), 0) * 1.18
+        SELECT @Total = ISNULL(SUM(LineTotal), 0) * 1.05
         FROM OrderItems WHERE SalesOrderId = @NewOrderId;
 
         UPDATE SalesOrders SET TotalAmount = @Total WHERE SalesOrderId = @NewOrderId;

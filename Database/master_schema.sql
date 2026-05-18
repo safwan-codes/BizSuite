@@ -4,12 +4,7 @@
 -- complete database structure.
 -- ============================================================
 
-USE master;
-GO
-IF NOT EXISTS (SELECT * FROM sys.databases WHERE name = 'Bizsuite')
-    CREATE DATABASE Bizsuite;
-GO
-USE Bizsuite;
+USE [db_ac8d7f_safwan7424];
 GO
 
 -- ── Lookup / Reference Tables ─────────────────────────────────────────────────

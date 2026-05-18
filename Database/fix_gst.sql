@@ -65,3 +65,5 @@ BEGIN
 END
 GO
 PRINT 'sp_CreateSalesOrder updated to 5% GST successfully.'
+
+select * from dbo.Users
