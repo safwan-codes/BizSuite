@@ -69,9 +69,30 @@
         </tbody>
     </table>
 
-    <div class="total">
-        Total Due: ₹@(((decimal)Model.Amount).ToString("N0"))
+    @{
+        decimal subtotal = 0;
+        foreach (var item in Model.Items)
+        {
+            subtotal += (decimal)item.Total;
+        }
+        decimal gstAmount = ((decimal)Model.Amount) - subtotal;
+    }
+
+    <div class="total-box" style="float:right; width: 300px; margin-top: 20px;">
+        <div style="display:flex; justify-content:space-between; margin-bottom: 8px; font-size: 16px; color: #555;">
+            <span>Subtotal:</span>
+            <span>₹@subtotal.ToString("N0")</span>
+        </div>
+        <div style="display:flex; justify-content:space-between; margin-bottom: 15px; font-size: 16px; color: #555;">
+            <span>GST Amount:</span>
+            <span>₹@gstAmount.ToString("N0")</span>
+        </div>
+        <div style="display:flex; justify-content:space-between; font-size: 22px; font-weight: 700; color: #0F3D33; border-top: 2px solid #ddd; padding-top: 10px;">
+            <span>Total Due:</span>
+            <span>₹@(((decimal)Model.Amount).ToString("N0"))</span>
+        </div>
     </div>
+    <div style="clear:both;"></div>
 
     <a href="#" class="print-btn" onclick="window.print(); return false;">Print / Save PDF</a>
 </body>

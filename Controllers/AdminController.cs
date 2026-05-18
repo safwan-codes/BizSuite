@@ -630,11 +630,13 @@ namespace BizSuite.Controllers
         }
 
         [HttpPost]
-        public IActionResult InviteStaffAjax(string fullName, string email, string role, string department)
+        public async Task<IActionResult> InviteStaffAjax(string fullName, string email, string role, string department)
         {
             try
             {
                 var staffRepo = HttpContext.RequestServices.GetService(typeof(IStaffRepository)) as IStaffRepository;
+                var emailService = HttpContext.RequestServices.GetService(typeof(BizSuite.Services.IEmailService)) as BizSuite.Services.IEmailService;
+
                 if (staffRepo == null) return Json(new { success = false, message = "Staff repository not found." });
 
                 var staff = new BizSuite.Models.Staff.StaffMember
@@ -646,7 +648,31 @@ namespace BizSuite.Controllers
                     Department = department,
                     IsActive = true
                 };
+                
+                // Insert into database (default password is set in repo: Bizsuite@123)
                 staffRepo.Insert(staff);
+
+                // Send actual invitation email
+                if (emailService != null)
+                {
+                    string companyName = HttpContext.Session.GetString("Company") ?? "BizSuite";
+                    string subject = $"You have been invited to join {companyName} on BizSuite!";
+                    string body = $@"
+                        <div style='font-family: Arial, sans-serif; padding: 20px; color: #333;'>
+                            <h2>Welcome to {companyName}!</h2>
+                            <p>Hi {fullName},</p>
+                            <p>You have been invited to join <strong>{companyName}</strong> as a <strong>{role}</strong>.</p>
+                            <p>You can now log in to the ERP portal using this email address and your temporary password:</p>
+                            <p style='background: #f4f4f4; padding: 10px; font-weight: bold; border-radius: 5px; width: max-content;'>Bizsuite@123</p>
+                            <p>Please change your password immediately after logging in.</p>
+                            <br/>
+                            <p>Best regards,<br/>The BizSuite Team</p>
+                        </div>
+                    ";
+
+                    await emailService.SendEmailAsync(email, subject, body);
+                }
+
                 return Json(new { success = true, message = $"Invitation sent to {fullName} ({email})." });
             }
             catch (Exception ex)
