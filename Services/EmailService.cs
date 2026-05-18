@@ -1,4 +1,4 @@
-﻿using System.Net;
+using System.Net;
 using System.Net.Mail;
 using Microsoft.Extensions.Configuration;
 using System.Threading.Tasks;
@@ -37,6 +37,7 @@ namespace BizSuite.Services
 
                 using (var client = new SmtpClient(host, port))
                 {
+                    client.Timeout = 10000; // 10 seconds timeout
                     client.UseDefaultCredentials = false;
                     client.EnableSsl = true;
                     client.Credentials = new NetworkCredential(user, pass);

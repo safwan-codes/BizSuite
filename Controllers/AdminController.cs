@@ -653,27 +653,37 @@ namespace BizSuite.Controllers
                 staffRepo.Insert(staff);
 
                 // Send actual invitation email
+                string emailNotice = "";
                 if (emailService != null)
                 {
-                    string companyName = HttpContext.Session.GetString("Company") ?? "BizSuite";
-                    string subject = $"You have been invited to join {companyName} on BizSuite!";
-                    string body = $@"
-                        <div style='font-family: Arial, sans-serif; padding: 20px; color: #333;'>
-                            <h2>Welcome to {companyName}!</h2>
-                            <p>Hi {fullName},</p>
-                            <p>You have been invited to join <strong>{companyName}</strong> as a <strong>{role}</strong>.</p>
-                            <p>You can now log in to the ERP portal using this email address and your temporary password:</p>
-                            <p style='background: #f4f4f4; padding: 10px; font-weight: bold; border-radius: 5px; width: max-content;'>Bizsuite@123</p>
-                            <p>Please change your password immediately after logging in.</p>
-                            <br/>
-                            <p>Best regards,<br/>The BizSuite Team</p>
-                        </div>
-                    ";
+                    try
+                    {
+                        string companyName = HttpContext.Session.GetString("Company") ?? "BizSuite";
+                        string subject = $"You have been invited to join {companyName} on BizSuite!";
+                        string body = $@"
+                            <div style='font-family: Arial, sans-serif; padding: 20px; color: #333;'>
+                                <h2>Welcome to {companyName}!</h2>
+                                <p>Hi {fullName},</p>
+                                <p>You have been invited to join <strong>{companyName}</strong> as a <strong>{role}</strong>.</p>
+                                <p>You can now log in to the ERP portal using this email address and your temporary password:</p>
+                                <p style='background: #f4f4f4; padding: 10px; font-weight: bold; border-radius: 5px; width: max-content;'>Bizsuite@123</p>
+                                <p>Please change your password immediately after logging in.</p>
+                                <br/>
+                                <p>Best regards,<br/>The BizSuite Team</p>
+                            </div>
+                        ";
 
-                    await emailService.SendEmailAsync(email, subject, body);
+                        await emailService.SendEmailAsync(email, subject, body);
+                        emailNotice = " Email sent successfully.";
+                    }
+                    catch (Exception emailEx)
+                    {
+                        _logger.LogWarning(emailEx, "Staff added but failed to send email.");
+                        emailNotice = " (Note: Email failed to send due to server config, but account was created.)";
+                    }
                 }
 
-                return Json(new { success = true, message = $"Invitation sent to {fullName} ({email})." });
+                return Json(new { success = true, message = $"Invitation processed for {fullName}." + emailNotice });
             }
             catch (Exception ex)
             {
