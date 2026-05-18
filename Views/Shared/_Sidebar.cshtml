@@ -1,10 +1,16 @@
 @{
     var fullName    = Context.Session.GetString("FullName") ?? "User";
     var role        = Context.Session.GetString("RoleName") ?? "Staff";
-    var initials    = string.Concat(fullName.Split(' ').Where(w => !string.IsNullOrEmpty(w)).Take(2).Select(w => w[0]));
     var path        = Context.Request.Path.Value?.ToLower() ?? "";
     bool isAdmin    = role == "Admin";
     bool isManager  = role == "Manager";
+
+    // Safe initials — same pattern as _Topbar.cshtml
+    var _nameParts  = fullName.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+    var initials    = _nameParts.Length > 1
+        ? $"{_nameParts[0][0]}{_nameParts[1][0]}"
+        : (_nameParts.Length == 1 ? $"{_nameParts[0][0]}" : "U");
+    initials = initials.ToUpper();
 
     string ActiveIf(string segment) =>
         path.Contains(segment) ? "active" : "";
