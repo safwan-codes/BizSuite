@@ -678,6 +678,10 @@ namespace BizSuite.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error inviting staff");
+                if (ex.Message.Contains("UQ_Users_Email"))
+                {
+                    return Json(new { success = false, message = "An account with this email address already exists." });
+                }
                 return Json(new { success = false, message = ex.Message });
             }
         }
